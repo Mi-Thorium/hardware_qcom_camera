@@ -96,7 +96,7 @@ else
         LOCAL_CFLAGS += -DCAMERA_ION_FALLBACK_HEAP_ID=ION_CAMERA_HEAP_ID
         LOCAL_CFLAGS += -DNUM_RECORDING_BUFFERS=5
 endif
-LOCAL_CFLAGS += -Wall -Wextra -Werror
+LOCAL_CFLAGS += -Wall -Wextra -Werror -Wno-enum-conversion
 
 LOCAL_SHARED_LIBRARIES:= \
          libcutils libdl libmmcamera_interface liblog
@@ -104,7 +104,7 @@ LOCAL_SHARED_LIBRARIES:= \
 LOCAL_MODULE_TAGS := optional
 
 LOCAL_MODULE:= mm-qcamera-app
-LOCAL_CLANG := false
+LOCAL_CLANG := true
 LOCAL_32_BIT_ONLY := true
 LOCAL_VENDOR_MODULE := true
 include $(BUILD_EXECUTABLE)
@@ -204,7 +204,7 @@ else
         LOCAL_CFLAGS += -DCAMERA_ION_FALLBACK_HEAP_ID=ION_CAMERA_HEAP_ID
         LOCAL_CFLAGS += -DNUM_RECORDING_BUFFERS=5
 endif
-LOCAL_CFLAGS += -Wall -Wextra -Werror
+LOCAL_CFLAGS += -Wall -Wextra -Werror -Wno-enum-conversion
 
 LOCAL_SHARED_LIBRARIES:= \
          libcutils libdl libmmcamera_interface liblog
@@ -214,7 +214,7 @@ LOCAL_MODULE_PATH_32 := $(TARGET_OUT_VENDOR)/lib
 
 LOCAL_MODULE:= libmm-qcamera
 LOCAL_VENDOR_MODULE := true
-LOCAL_CLANG := false
+LOCAL_CLANG := true
 LOCAL_32_BIT_ONLY := true
 include $(BUILD_SHARED_LIBRARY)
 endif
