@@ -1,4 +1,4 @@
-/* Copyright (c) 2013-2014, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2013-2014, 2020, The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -36,7 +36,6 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include <errno.h>
-#include <linux/android_pmem.h>
 #include <fcntl.h>
 #include "mm_jpeg_dbg.h"
 
