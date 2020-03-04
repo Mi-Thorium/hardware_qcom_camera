@@ -49,6 +49,10 @@ endif
 
 LOCAL_CFLAGS += -Wall -Wextra -Werror -Wno-memsize-comparison -Wno-pointer-bool-conversion
 
+ifeq ($(TARGET_KERNEL_VERSION), 4.9)
+LOCAL_CFLAGS += -DUSE_4_9_DEFS
+endif
+
 LOCAL_SRC_FILES := $(MM_CAM_FILES)
 
 LOCAL_MODULE           := libmmcamera_interface
