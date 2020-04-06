@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2015, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2015, 2020, The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -5237,6 +5237,12 @@ TRANS_INIT_DONE:
  *==========================================================================*/
 void QCameraParameters::deinit()
 {
+    if (NULL != m_pParamHeap) {
+        m_pParamHeap->deallocate();
+        delete m_pParamHeap;
+        m_pParamHeap = NULL;
+        m_pParamBuf = NULL;
+    }
     if (!m_bInited) {
         return;
     }
@@ -5252,12 +5258,6 @@ void QCameraParameters::deinit()
         m_pCamOpsTbl = NULL;
     }
     m_pCapability = NULL;
-    if (NULL != m_pParamHeap) {
-        m_pParamHeap->deallocate();
-        delete m_pParamHeap;
-        m_pParamHeap = NULL;
-        m_pParamBuf = NULL;
-    }
 
     m_AdjustFPS = NULL;
 
