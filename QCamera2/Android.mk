@@ -99,9 +99,9 @@ endif
 ifeq ($(call is-platform-sdk-version-at-least,26),true)
 USE_DISPLAY_SERVICE := true
 LOCAL_CFLAGS += -DUSE_DISPLAY_SERVICE
-LOCAL_CFLAGS += -std=c++11 -std=gnu++1y
+LOCAL_CFLAGS += -std=c++14 -std=gnu++1z
 else
-LOCAL_CFLAGS += -std=c++11 -std=gnu++0x
+LOCAL_CFLAGS += -std=c++14 -std=gnu++1z
 endif
 
 #Android P onwards we use vendor prefix
@@ -199,6 +199,12 @@ endif
 
 ifneq (,$(filter $(TRINKET) msm8937_32go-userdebug, $(TARGET_BOARD_PLATFORM)))
 LOCAL_CFLAGS += -DSUPPORT_ONLY_HAL3
+endif
+
+ifeq ($(TARGET_KERNEL_VERSION), 4.14)
+    ifeq ($(TARGET_BOARD_PLATFORM), sdm660)
+        LOCAL_CFLAGS += -DSUPPORT_ONLY_HAL3
+    endif
 endif
 
 LOCAL_STATIC_LIBRARIES := android.hardware.camera.common@1.0-helper
