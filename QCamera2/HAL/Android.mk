@@ -17,7 +17,7 @@ LOCAL_SRC_FILES := \
         QCameraThermalAdapter.cpp \
         wrapper/QualcommCamera.cpp
 
-LOCAL_CFLAGS = -Wall -Wextra -Werror
+LOCAL_CFLAGS = -Wall -Wextra -Werror -Wno-gnu-designator -Wno-unused-variable -Wno-unused-private-field -Wno-implicit-fallthrough
 ifeq ($(filter OMR1 O 8.1.0, $(PLATFORM_VERSION)), )
 LOCAL_CFLAGS += -march=armv7ve
 endif
@@ -91,7 +91,7 @@ LOCAL_STATIC_LIBRARIES := android.hardware.camera.common@1.0-helper
 LOCAL_MODULE_RELATIVE_PATH    := hw
 LOCAL_MODULE := camera.$(TARGET_BOARD_PLATFORM)
 LOCAL_VENDOR_MODULE := true
-LOCAL_CLANG := false
+LOCAL_CLANG := true
 LOCAL_32_BIT_ONLY := true
 LOCAL_MODULE_TAGS := optional
 
