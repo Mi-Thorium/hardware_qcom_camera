@@ -99,7 +99,7 @@ endif
 LOCAL_CFLAGS += -Wall -Wextra -Werror -Wno-enum-conversion
 
 LOCAL_SHARED_LIBRARIES:= \
-         libcutils libdl libmmcamera_interface liblog
+         libcutils libdl libmmcamera_interface liblog libutils
 
 LOCAL_MODULE_TAGS := optional
 
@@ -207,7 +207,7 @@ endif
 LOCAL_CFLAGS += -Wall -Wextra -Werror -Wno-enum-conversion
 
 LOCAL_SHARED_LIBRARIES:= \
-         libcutils libdl libmmcamera_interface liblog
+         libcutils libdl libmmcamera_interface liblog libutils
 
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE_PATH_32 := $(TARGET_OUT_VENDOR)/lib

@@ -3,6 +3,7 @@ OLD_LOCAL_PATH := $(LOCAL_PATH)
 LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
+LOCAL_HEADER_LIBRARIES := libhardware_headers
 
 MM_CAM_FILES := \
         src/mm_camera_interface.c \
@@ -47,7 +48,7 @@ ifneq ($(call is-platform-sdk-version-at-least,17),true)
   LOCAL_CFLAGS += -include bionic/libc/kernel/common/linux/un.h
 endif
 
-LOCAL_CFLAGS += -Wall -Wextra -Werror -Wno-memsize-comparison -Wno-pointer-bool-conversion
+LOCAL_CFLAGS += -Wall -Wextra -Werror -Wno-implicit-function-declaration -Wno-memsize-comparison -Wno-pointer-bool-conversion
 
 LOCAL_SRC_FILES := $(MM_CAM_FILES)
 
@@ -55,7 +56,7 @@ LOCAL_MODULE           := libmmcamera_interface
 LOCAL_CLANG            := true
 LOCAL_32_BIT_ONLY := true
 LOCAL_PRELINK_MODULE   := false
-LOCAL_SHARED_LIBRARIES := libdl libcutils liblog
+LOCAL_SHARED_LIBRARIES := libdl libcutils liblog libutils
 LOCAL_MODULE_TAGS := optional
 LOCAL_VENDOR_MODULE := true
 

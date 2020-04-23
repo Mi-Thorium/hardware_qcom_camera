@@ -18,9 +18,10 @@
 #define LOG_TAG "CameraParams"
 #include <utils/Log.h>
 
+#include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
-#include <camera/CameraParameters.h>
+#include "CameraParameters.h"
 #include <system/graphics.h>
 
 namespace android {

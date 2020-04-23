@@ -24,6 +24,6 @@ LOCAL_MODULE           := libqomx_core
 LOCAL_VENDOR_MODULE := true
 LOCAL_32_BIT_ONLY := true
 LOCAL_PRELINK_MODULE   := false
-LOCAL_SHARED_LIBRARIES := libcutils libdl liblog
+LOCAL_SHARED_LIBRARIES := libcutils libdl liblog libutils
 
 include $(BUILD_SHARED_LIBRARY)

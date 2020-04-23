@@ -61,6 +61,8 @@ else
 LOCAL_CFLAGS += -DUSE_KK_CODE
 endif
 
+LOCAL_HEADER_LIBRARIES := media_plugin_headers
+
 LOCAL_C_INCLUDES += \
         $(TARGET_OUT_HEADERS)/qcom/display
 LOCAL_C_INCLUDES += \
