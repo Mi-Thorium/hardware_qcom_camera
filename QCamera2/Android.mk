@@ -99,9 +99,9 @@ endif
 ifeq ($(call is-platform-sdk-version-at-least,26),true)
 USE_DISPLAY_SERVICE := true
 LOCAL_CFLAGS += -DUSE_DISPLAY_SERVICE
-LOCAL_CFLAGS += -std=c++11 -std=gnu++1y
+LOCAL_CFLAGS += -std=c++14 -std=gnu++1z
 else
-LOCAL_CFLAGS += -std=c++11 -std=gnu++0x
+LOCAL_CFLAGS += -std=c++14 -std=gnu++1z
 endif
 
 #Android P onwards we use vendor prefix
@@ -131,9 +131,14 @@ LOCAL_CFLAGS += -DTARGET_TRINKET
 endif
 
 ifneq ($(TARGET_KERNEL_VERSION),$(filter $(TARGET_KERNEL_VERSION),3.18 4.4 4.9))
-LOCAL_C_INCLUDES += \
-        system/core/libion/kernel-headers \
-        system/core/libion/include
+  ifneq ($(LIBION_HEADER_PATH_WRAPPER), )
+    include $(LIBION_HEADER_PATH_WRAPPER)
+    LOCAL_C_INCLUDES += $(LIBION_HEADER_PATHS)
+  else
+    LOCAL_C_INCLUDES += \
+            system/core/libion/kernel-headers \
+            system/core/libion/include
+  endif
 endif
 
 LOCAL_HEADER_LIBRARIES := media_plugin_headers
@@ -186,7 +191,10 @@ LOCAL_SHARED_LIBRARIES += libdualcameraddm
 LOCAL_CFLAGS += -DENABLE_QC_BOKEH
 endif
 ifeq ($(USE_DISPLAY_SERVICE),true)
-LOCAL_SHARED_LIBRARIES += android.frameworks.displayservice@1.0 android.hidl.base@1.0 libhidlbase libhidltransport
+LOCAL_SHARED_LIBRARIES += android.frameworks.displayservice@1.0 android.hidl.base@1.0 libhidlbase
+  ifneq ($(filter P% p% Q% q%,$(TARGET_PLATFORM_VERSION)),)
+    LOCAL_SHARED_LIBRARIES += libhidltransport
+  endif
 else
 LOCAL_SHARED_LIBRARIES += libgui
 endif
