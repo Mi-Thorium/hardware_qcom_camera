@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2014, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2014, 2020, The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -32,6 +32,7 @@
 #include <linux/msm_ion.h>
 #include <linux/videodev2.h>
 #include <media/msmb_camera.h>
+#include <linux/media.h>
 #include "cam_intf.h"
 #include "cam_queue.h"
 
@@ -759,6 +760,9 @@ int32_t mm_stream_calc_offset_metadata(cam_dimension_t *dim,
 int32_t mm_stream_calc_offset_postproc(cam_stream_info_t *stream_info,
         cam_padding_info_t *padding,
         cam_stream_buf_plane_info_t *buf_planes);
+
+int mm_camera_util_match_subdev_type(struct media_entity_desc entity,
+     uint32_t gid, uint32_t type);
 
 uint8_t check_cam_access(uint8_t camera_idx);
 #endif /*__MM_CAMERA_INTERFACE_H__*/
