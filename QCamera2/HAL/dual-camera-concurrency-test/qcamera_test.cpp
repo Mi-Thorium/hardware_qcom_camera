@@ -1173,9 +1173,9 @@ status_t CameraContext::startPreview()
 
     if(mRecordingHint){
         mParams.set(CameraContext::KEY_ZSL, "off");
-        //mParams.set("dis", "enable");
+        mParams.set("dis", "enable");
         mCamera->setParameters(mParams.flatten());
-        //mParams.set("video-stabilization", "true");
+        mParams.set("video-stabilization", "true");
         mParams.setPictureSize(
             currentVideoSize.width, currentVideoSize.height);
         mCamera->setParameters(mParams.flatten());
