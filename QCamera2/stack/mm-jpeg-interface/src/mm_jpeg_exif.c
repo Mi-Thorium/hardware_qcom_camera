@@ -569,6 +569,20 @@ int process_meta_data(metadata_buffer_t *p_meta, QOMX_EXIF_INFO *exif_info,
       } else {
         LOGE("Cannot extract flash state value");
       }
+
+      IF_META_AVAILABLE(int32_t, iso, CAM_INTF_META_SENSOR_SENSITIVITY, p_meta) {
+        p_3a_params.iso_value= *iso;
+      } else {
+        LOGE("Cannot extract Iso value");
+      }
+
+      IF_META_AVAILABLE(int64_t, sensor_exposure_time,
+        CAM_INTF_META_SENSOR_EXPOSURE_TIME, p_meta) {
+        p_3a_params.exp_time =
+          (float)((double)(*sensor_exposure_time) / 1000000000.0);
+      } else {
+        LOGE("Cannot extract Exp time value");
+      }
     } else {
       /* HAL V3 */
       IF_META_AVAILABLE(cam_3a_params_t, l_3a_params, CAM_INTF_META_AEC_INFO,
