@@ -334,15 +334,17 @@ int32_t QCameraFlash::reserveFlashForCamera(const int camera_id)
                 hasFlash,
                 flashNode);
 
-        if (m_callbacks == NULL ||
-                m_callbacks->torch_mode_status_change == NULL) {
-            LOGE("Callback is not defined!");
-            retVal = -ENOSYS;
-        } else if (!hasFlash) {
+        if (!hasFlash) {
             LOGD("Suppressing callback "
                     "because no flash exists for camera id: %d",
                     camera_id);
+            return 0;
         } else {
+            if (m_callbacks == NULL ||
+                m_callbacks->torch_mode_status_change == NULL) {
+                LOGE("Callback is not defined! ");
+                return -ENOSYS;
+            }
             char cameraIdStr[STRING_LENGTH_OF_64_BIT_NUMBER];
             snprintf(cameraIdStr, STRING_LENGTH_OF_64_BIT_NUMBER,
                     "%d", camera_id);
@@ -389,15 +391,18 @@ int32_t QCameraFlash::releaseFlashFromCamera(const int camera_id)
                 hasFlash,
                 flashNode);
 
-        if (m_callbacks == NULL ||
-                m_callbacks->torch_mode_status_change == NULL) {
-            LOGE("Callback is not defined!");
-            retVal = -ENOSYS;
-        } else if (!hasFlash) {
+        if (!hasFlash) {
             LOGD("Suppressing callback "
                     "because no flash exists for camera id: %d",
                     camera_id);
+            return 0;
         } else {
+            if (m_callbacks == NULL ||
+                m_callbacks->torch_mode_status_change == NULL) {
+                LOGE("Callback is not defined! ");
+                return -ENOSYS;
+            }
+
             char cameraIdStr[STRING_LENGTH_OF_64_BIT_NUMBER];
             snprintf(cameraIdStr, STRING_LENGTH_OF_64_BIT_NUMBER,
                     "%d", camera_id);
