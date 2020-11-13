@@ -348,6 +348,11 @@ private:
     //Longshot
     static const char KEY_QC_LONGSHOT_SUPPORTED[];
 
+    // Dual camera mode
+    static const char KEY_QC_DUAL_CAMERA_MODE[];
+    static const char KEY_QC_DUAL_CAMERA_ID[];
+    static const char KEY_QC_DUAL_CAMERA_MAIN_CAMERA[];
+
     //ZSL+HDR
     static const char KEY_QC_ZSL_HDR_SUPPORTED[];
 
@@ -677,6 +682,7 @@ public:
     int32_t commitParameters();
 
     char* getParameters();
+    bool getDualCameraMode();
     void getPreviewFpsRange(int *min_fps, int *max_fps) const {
             CameraParameters::getPreviewFpsRange(min_fps, max_fps);
     }
@@ -1060,6 +1066,7 @@ private:
     int32_t setCustomParams(const QCameraParameters& params);
     int32_t setBokehMode(const QCameraParameters& params);
     int32_t setAfFineTune(const QCameraParameters& );
+    int32_t setDualCameraMode(const QCameraParameters& params);
     int32_t setAutoExposure(const char *autoExp);
     int32_t setPreviewFpsRange(int min_fps,int max_fps,
             int vid_min_fps,int vid_max_fps);
@@ -1387,6 +1394,10 @@ private:
     uint32_t m_bBokehMpoEnabled;
     uint8_t  mDualCamType;
     bool m_bBokehSnapEnabled;
+    //stereo camera
+    bool m_bDualCameraMode;
+    int32_t mDualCamId;
+    bool m_bMainCamera;
 };
 
 }; // namespace qcamera
