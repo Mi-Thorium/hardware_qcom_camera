@@ -846,6 +846,7 @@ public:
     bool isAdvCamFeaturesEnabled() {return isUbiFocusEnabled() ||
             isChromaFlashEnabled() || m_bOptiZoomOn || isHDREnabled() ||
             isAEBracketEnabled() || isStillMoreEnabled() || isUbiRefocus();}
+    bool isDualCameraAdvCamFeatures() {return isAEBracketEnabled();}
     int32_t setAecLock(const char *aecStr);
     int32_t updateDebugLevel();
     bool is4k2kVideoResolution();

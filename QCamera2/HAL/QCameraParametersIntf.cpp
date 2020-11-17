@@ -1043,6 +1043,13 @@ bool QCameraParametersIntf::isAdvCamFeaturesEnabled()
     return mImpl->isAdvCamFeaturesEnabled();
 }
 
+bool QCameraParametersIntf::isDualCameraAdvCamFeatures()
+{
+    Mutex::Autolock lock(mLock);
+    CHECK_PARAM_INTF(mImpl);
+    return mImpl->isDualCameraAdvCamFeatures();
+}
+
 int32_t QCameraParametersIntf::setAecLock(const char *aecStr)
 {
     Mutex::Autolock lock(mLock);
