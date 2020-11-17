@@ -160,6 +160,7 @@ struct TestConfig
     int statsLogMask;
     uint32_t num_images;
     string antibanding;
+    bool is_interact;
 };
 
 /**
@@ -329,7 +330,7 @@ static inline uint32_t align_size(uint32_t size, uint32_t align)
     return ((size + align - 1) & ~(align-1));
 }
 
-#if 1
+#if 0
 void request_process_thread(ICameraDevice *device, int camId, TestConfig cfg, pthread_mutex_t *mutex)
 {
     int rc = 0;
@@ -596,6 +597,33 @@ static inline void printUsageExit(int code)
     printf("%s", usageStr);
     exit(code);
 }
+
+enum Commands_e {
+    TAKEPICTURE_CMD = 'p',
+    EXIT_CMD = 'q',
+    INVALID_CMD = '0'
+};
+
+/*===========================================================================
+ * FUNCTION   : printMenu
+ *
+ * DESCRIPTION: prints the available camera options
+ *
+ * PARAMETERS :
+ *  @currentCamera : camera context currently being used
+ *
+ * RETURN     : None
+ *==========================================================================*/
+void printMenu()
+{
+    printf("\n\n=========== FUNCTIONAL TEST MENU ===================\n\n");
+
+    printf("   %c. Take picture\n", TAKEPICTURE_CMD);
+    printf("   %c. Quit \n", EXIT_CMD);
+
+    printf("\n   Choice: ");
+}
+
 /**
  * FUNCTION: setFPSindex
  *
@@ -669,6 +697,8 @@ int CameraTest::setParameters(int camId)
         pSize_[camId].width, pSize_[camId].height, picSize_[camId].width, picSize_[camId].height);
     switch ( camId ){
         case 0:
+            params_[camId].set("ae-bracket-hdr", "AE-Bracket");
+            params_[camId].set("capture-burst-exposures", "0,-4,+4");
         case 1:
             params_[camId].set("preview-format", "yuv420sp");
             params_[camId].set("zsl", "on");
@@ -809,7 +839,36 @@ int CameraTest::run()
         }
     }
 
-    if (config_.testSnapshot == true) {
+    if (config_.is_interact) {
+        bool is_running = true;
+        Commands_e command;
+        while (is_running) {
+            sleep(1);
+            printMenu();
+            command = static_cast<Commands_e>(getchar());
+            while ((getchar()) != '\n');
+            switch (command) {
+            case TAKEPICTURE_CMD:
+            {
+                printf("taking picture\n");
+                rc = takePicture(config_.num_images);
+
+                if (rc) {
+                    printf("takePicture failed\n");
+                    exit(EXIT_FAILURE);
+                }
+            }
+            break;
+            case EXIT_CMD:
+            {
+                printf("exit\n");
+                is_running = false;
+            }
+            default:
+            printf("invalid command\n");
+            }
+        }
+    } else if (config_.testSnapshot == true) {
         printf("waiting for 3 seconds for exposure to settle...\n");
         /* sleep required to settle the exposure before taking snapshot.
            This app does not provide interactive feedback to user
@@ -972,7 +1031,19 @@ static TestConfig parseCommandline(int argc, char* argv[])
 
 int main(int argc, char* argv[])
 {
-    TestConfig config = parseCommandline(argc, argv);
+    TestConfig config;
+
+    if (argc > 1) {
+        config = parseCommandline(argc, argv);
+        config.is_interact = false;
+    } else {
+        config.func = CAM_FUNC_STEREO;
+        setDefaultConfig(config);
+        config.picSize = i5MSize;
+        config.dumpFrames = false;
+        config.testSnapshot = true;
+        config.is_interact = true;
+    }
 
     /* setup syslog level */
     if (config.logLevel == CAM_LOG_SILENT) {
