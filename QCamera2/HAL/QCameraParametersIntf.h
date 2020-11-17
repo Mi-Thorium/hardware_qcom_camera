@@ -237,6 +237,7 @@ public:
     void updateAEInfo(cam_3a_params_t &ae_params);
     bool isDisplayFrameNeeded();
     bool isAdvCamFeaturesEnabled();
+    bool isDualCameraAdvCamFeatures();
     int32_t setAecLock(const char *aecStr);
     int32_t updateDebugLevel();
     bool is4k2kVideoResolution();
