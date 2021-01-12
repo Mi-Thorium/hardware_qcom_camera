@@ -2139,6 +2139,11 @@ int QCameraMuxer::cameraDeviceOpen(int camera_id,
             }
             hw_dev[i] = NULL;
 
+            rc = hw->openCamera(&hw_dev[i]);
+            if (rc != NO_ERROR) {
+                delete hw;
+                return rc;
+            }
             // Make Camera HWI aware of its mode
             cam_sync_related_sensors_event_info_t info;
             info.sync_control = CAM_SYNC_RELATED_SENSORS_ON;
@@ -2152,11 +2157,6 @@ int QCameraMuxer::cameraDeviceOpen(int camera_id,
                 return rc;
             }
 
-            rc = hw->openCamera(&hw_dev[i]);
-            if (rc != NO_ERROR) {
-                delete hw;
-                return rc;
-            }
             hw->getCameraSessionId(&m_pPhyCamera[phyId].camera_server_id);
             m_pPhyCamera[phyId].dev = reinterpret_cast<camera_device_t*>(hw_dev[i]);
             m_pPhyCamera[phyId].hwi = hw;

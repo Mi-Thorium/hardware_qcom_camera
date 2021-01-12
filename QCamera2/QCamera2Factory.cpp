@@ -99,6 +99,7 @@ QCamera2Factory::QCamera2Factory()
     bDualCamera = 0;
 #endif
 
+#ifdef QCAMERA_MUXER_DUAL
     if(bDualCamera) {
         LOGI("Enabling QCamera Muxer");
 #ifdef QCAMERA_HAL1_SUPPORT
@@ -110,6 +111,7 @@ QCamera2Factory::QCamera2Factory()
         }
 #endif
     }
+#endif
 #ifdef QCAMERA_HAL1_SUPPORT
     if (!gQCameraMuxer && (mNumOfCameras > 0) &&(mNumOfCameras <= MM_CAMERA_MAX_NUM_SENSORS)) {
 #else

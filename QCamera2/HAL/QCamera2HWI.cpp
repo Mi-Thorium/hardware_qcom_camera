@@ -2527,11 +2527,6 @@ int QCamera2HardwareInterface::initCapabilities(uint32_t cameraId,
     int rc = 0;
     uint32_t handle = 0;
 
-    rc = camera_open((uint8_t)cameraId, &cameraHandle);
-    if (rc) {
-        LOGE("camera_open failed. rc = %d", rc);
-        goto open_failed;
-    }
     if (!cameraHandle) {
         LOGE("camera_open failed. cameraHandle = %p", cameraHandle);
         goto open_failed;
@@ -2566,6 +2561,7 @@ int QCamera2HardwareInterface::initCapabilities(uint32_t cameraId,
         memcpy(gCamCapability[cameraId]->main_cam_cap, gCamCapability[cameraId],
                 sizeof(cam_capability_t));
     }
+    return rc;
 failed_op:
     cameraHandle->ops->close_camera(cameraHandle->camera_handle);
     cameraHandle = NULL;
@@ -4665,6 +4661,7 @@ int32_t QCamera2HardwareInterface::configureAdvancedCapture()
     bool bSkipDisplay = true;
 
     if (getRelatedCamSyncInfo()->mode == CAM_MODE_SECONDARY) {
+        mAdvancedCaptureConfigured = false;
         // no Advance capture settings for Aux camera
         LOGH("X Secondary Camera, no need to process!! ");
         return rc;
