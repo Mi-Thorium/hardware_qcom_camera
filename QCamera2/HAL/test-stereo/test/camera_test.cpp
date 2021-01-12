@@ -157,6 +157,9 @@ struct TestConfig
     int statsLogMask;
     uint32_t num_images;
     string antibanding;
+    bool is_interact;
+    bool enable_frame_sync;
+    bool enable_ae_bracket;
 };
 
 /**
@@ -338,7 +341,7 @@ int CameraTest::takePicture(uint32_t num_images)
             printf("take picture camId %d\n", camId);
             rc = camera_[camId]->takePicture();
             if (rc) {
-                printf("takePicture failed for %d\n", camId);
+            printf("camId %d takePicture failed\n", camId);
                 pthread_mutex_unlock(&mutexPicDone[camId]);
                 return rc;
             }
@@ -479,7 +482,7 @@ void CameraTest::onVideoFrame(ICameraFrame* frame)
             char name[MAX_BUF_SIZE];
             snprintf(name, MAX_BUF_SIZE, QCAMERA_DUMP_LOCATION "video_%dx%d_%04d_%llu_%s.yuv",
               pSize_[camidx].width, pSize_[camidx].height, vFrameCount_[camidx], frame->timeStamp,
-	          camidx==0?"L":"R");
+              camidx==0?"L":"R");
             dumpToFile(frame->data, frame->size, name, frame->timeStamp);
         }
     }else{
@@ -579,6 +582,33 @@ static inline void printUsageExit(int code)
     printf("%s", usageStr);
     exit(code);
 }
+
+enum Commands_e {
+    TAKEPICTURE_CMD = 'p',
+    EXIT_CMD = 'q',
+    INVALID_CMD = '0'
+};
+
+/*===========================================================================
+ * FUNCTION   : printMenu
+ *
+ * DESCRIPTION: prints the available camera options
+ *
+ * PARAMETERS :
+ *  @currentCamera : camera context currently being used
+ *
+ * RETURN     : None
+ *==========================================================================*/
+void printMenu()
+{
+    printf("\n\n=========== FUNCTIONAL TEST MENU ===================\n\n");
+
+    printf("   %c. Take picture\n", TAKEPICTURE_CMD);
+    printf("   %c. Quit \n", EXIT_CMD);
+
+    printf("\n   Choice: ");
+}
+
 /**
  * FUNCTION: setFPSindex
  *
@@ -681,6 +711,10 @@ int CameraTest::setParameters(int camId)
         pSize_[camId].width, pSize_[camId].height, picSize_[camId].width, picSize_[camId].height);
     switch ( camId ){
         case 0:
+            if (config_.enable_ae_bracket) {
+                params_[camId].set("ae-bracket-hdr", "AE-Bracket");
+                params_[camId].set("capture-burst-exposures", "0,-6,+6");
+            }
         case 1:
             params_[camId].set("preview-format", "yuv420sp");
             params_[camId].set("zsl", "on");
@@ -689,7 +723,7 @@ int CameraTest::setParameters(int camId)
                     picSize_[camId].width, picSize_[camId].height);
             params_[camId].setPictureFormat(FORMAT_JPEG);
             supportedSnapshotSizes = caps_[camId].picSizes;
-            if (config_.func == CAM_FUNC_STEREO) {
+            if (config_.func == CAM_FUNC_STEREO && config_.enable_frame_sync) {
                 printf("set dual camera mode for camId %d\n", camId);
                 if (camId == 0) {
                     params_[camId].set("dual-camera-mode", "ON");
@@ -815,10 +849,10 @@ int CameraTest::run()
 
     /* starts the preview stream. At every preview frame onPreviewFrame( ) callback is invoked */
     for (int i=0; i<camArray.size(); i++) {
-	camId = camArray[i];
-	printf("start preview camId %d\n", camId);
-	rc = camera_[camId]->startPreview();
-	printf("start preview camId %d rc %d\n", camId, rc);
+        camId = camArray[i];
+        printf("start preview camId %d\n", camId);
+        rc = camera_[camId]->startPreview();
+        printf("start preview camId %d rc %d\n", camId, rc);
     }
 
 
@@ -832,15 +866,44 @@ int CameraTest::run()
     }
 
     if (config_.testVideo  == true ) {
-	    for (int i=0; i<camArray.size(); i++) {
-	        camId = camArray[i];
-	        printf("start recording camId %d\n", camId);
-	        rc = camera_[camId]->startRecording();
-	        printf("start recording camId %d rc %d\n", camId, rc);
-	    }
+        for (int i=0; i<camArray.size(); i++) {
+            camId = camArray[i];
+            printf("start recording camId %d\n", camId);
+            rc = camera_[camId]->startRecording();
+            printf("start recording camId %d rc %d\n", camId, rc);
+        }
      }
 
-    if (config_.testSnapshot == true) {
+    if (config_.is_interact) {
+        bool is_running = true;
+        Commands_e command;
+        while (is_running) {
+            sleep(1);
+            printMenu();
+            command = static_cast<Commands_e>(getchar());
+            while ((getchar()) != '\n');
+            switch (command) {
+            case TAKEPICTURE_CMD:
+            {
+                printf("taking picture\n");
+                rc = takePicture(config_.num_images);
+
+                if (rc) {
+                    printf("takePicture failed\n");
+                    exit(EXIT_FAILURE);
+                }
+            }
+            break;
+            case EXIT_CMD:
+            {
+                printf("exit\n");
+                is_running = false;
+            }
+            default:
+            printf("invalid command\n");
+            }
+        }
+    } else if (config_.testSnapshot == true) {
         printf("waiting for 3 seconds for exposure to settle...\n");
         /* sleep required to settle the exposure before taking snapshot.
            This app does not provide interactive feedback to user
@@ -911,6 +974,8 @@ static int setDefaultConfig(TestConfig &cfg) {
     cfg.num_images = 1;
     cfg.antibanding = "off";
     cfg.testVideo = false;
+    cfg.enable_frame_sync = false;
+    cfg.enable_ae_bracket = false;
 
     switch (cfg.func) {
     case CAM_FUNC_LEFT_SENSOR:
@@ -949,7 +1014,7 @@ static TestConfig parseCommandline(int argc, char* argv[])
 
     int c;
 
-    while ((c = getopt(argc, argv, "hdt:i:s:f:V:v:b:")) != -1) {
+    while ((c = getopt(argc, argv, "BShdt:i:s:f:V:v:b:")) != -1) {
         switch (c) {
         case 'f':
             {
@@ -972,7 +1037,7 @@ static TestConfig parseCommandline(int argc, char* argv[])
     setDefaultConfig(cfg);
 
     optind = 1;
-    while ((c = getopt(argc, argv, "hdt:i:s:f:V:v:b:")) != -1) {
+    while ((c = getopt(argc, argv, "BShdt:i:s:f:V:v:b:")) != -1) {
         switch (c) {
         case 't':
             cfg.runTime = atoi(optarg);
@@ -1004,6 +1069,8 @@ static TestConfig parseCommandline(int argc, char* argv[])
                 string str(optarg);
                 if (str == "max") {
                     cfg.picSize = i5MSize;
+                } else if (str == "5M") {
+                    cfg.picSize = i5MSize;
                 } else if (str == "4M") {
                     cfg.picSize = i4MSize;
                 } else if (str == "1080p") {
@@ -1032,6 +1099,12 @@ static TestConfig parseCommandline(int argc, char* argv[])
         case 'b':
             cfg.num_images = atoi(optarg);
             break;
+        case 'B':
+            cfg.enable_ae_bracket = true;
+            break;
+        case 'S':
+            cfg.enable_frame_sync = true;
+            break;
         case 'h':
         case '?':
             printUsageExit(0);
@@ -1044,7 +1117,21 @@ static TestConfig parseCommandline(int argc, char* argv[])
 
 int main(int argc, char* argv[])
 {
-    TestConfig config = parseCommandline(argc, argv);
+    TestConfig config;
+
+    if (argc > 1) {
+        config = parseCommandline(argc, argv);
+        config.is_interact = false;
+    } else {
+        config.func = CAM_FUNC_STEREO;
+        setDefaultConfig(config);
+        config.picSize = i5MSize;
+        config.dumpFrames = false;
+        config.testSnapshot = true;
+        config.is_interact = true;
+        config.enable_frame_sync = false;
+        config.enable_ae_bracket = false;
+    }
 
     /* setup syslog level */
     if (config.logLevel == CAM_LOG_SILENT) {
