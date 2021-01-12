@@ -231,6 +231,9 @@ const char QCameraParameters::KEY_QC_BOKEH_PICTURE_SIZE[] = "bokeh-picture-size"
 
 const char QCameraParameters::KEY_QC_VFE1_RESERVED_RDI[] = "vfe1-reserved-rdi";
 
+const char QCameraParameters::KEY_QC_DUAL_CAMERA_MODE[] = "dual-camera-mode";
+const char QCameraParameters::KEY_QC_DUAL_CAMERA_ID[] = "dual-camera-id";
+const char QCameraParameters::KEY_QC_DUAL_CAMERA_MAIN_CAMERA[] = "dual-camera-main-camera";
 // Values for effect settings.
 const char QCameraParameters::EFFECT_EMBOSS[] = "emboss";
 const char QCameraParameters::EFFECT_SKETCH[] = "sketch";
@@ -1048,7 +1051,10 @@ QCameraParameters::QCameraParameters()
       mAsymmetricSnapMode(false),
       mAsymmetricPreviewMode(false),
       mDualCamType(DUAL_CAM_WIDE_TELE),
-      m_bBokehSnapEnabled(true)
+      m_bBokehSnapEnabled(true),
+      m_bDualCameraMode(false),
+      mDualCamId(0),
+      m_bMainCamera(false)
 {
     char value[PROPERTY_VALUE_MAX];
     // TODO: may move to parameter instead of sysprop
@@ -1205,7 +1211,10 @@ QCameraParameters::QCameraParameters(const String8 &params)
     mAsymmetricSnapMode(false),
     mAsymmetricPreviewMode(false),
     mDualCamType(DUAL_CAM_WIDE_TELE),
-    m_bBokehSnapEnabled(true)
+    m_bBokehSnapEnabled(true),
+    m_bDualCameraMode(false),
+    mDualCamId(0),
+    m_bMainCamera(false)
 {
     memset(&m_LiveSnapshotSize, 0, sizeof(m_LiveSnapshotSize));
     memset(&m_default_fps_range, 0, sizeof(m_default_fps_range));
@@ -5845,6 +5854,7 @@ int32_t QCameraParameters::updateParameters(const String8& p,
     if ((rc = setSecureModeSensitivity(params)))        final_rc = rc;
     if ((rc = setSecureModeExposureTime(params)))       final_rc = rc;
     if ((rc = setVfe1ReservedRdi(params)))              final_rc = rc;
+    if ((rc = setDualCameraMode(params)))               final_rc = rc;
 
     setQuadraCfa(params);
     setVideoBatchSize();
@@ -6716,6 +6726,11 @@ int32_t QCameraParameters::initDefaultParameters()
     // Set default burst number
     set(KEY_QC_SNAPSHOT_BURST_NUM, 0);
     set(KEY_QC_NUM_RETRO_BURST_PER_SHUTTER, 0);
+
+    // Set default dual camera info
+    set(KEY_QC_DUAL_CAMERA_MODE,VALUE_OFF);
+    set(KEY_QC_DUAL_CAMERA_ID,0);
+    set(KEY_QC_DUAL_CAMERA_MAIN_CAMERA,VALUE_FALSE);
 
     //Get RAM size and disable features which are memory rich
     struct sysinfo info;
@@ -13049,8 +13064,10 @@ int32_t QCameraParameters::setDualCamBundleInfo(bool enable_sync,
     sync_stats_common = af_sync = sync_3a_mode;
 
     //Set AF sync mode to none, if either of the sensors doesn't support auto focus.
-    if (!isAutoFocusSupported(CAM_TYPE_MAIN) || !isAutoFocusSupported(CAM_TYPE_AUX))
-        af_sync = CAM_3A_SYNC_NONE;
+    if (isDualCamera()) {
+        if (!isAutoFocusSupported(CAM_TYPE_MAIN) || !isAutoFocusSupported(CAM_TYPE_AUX))
+            af_sync = CAM_3A_SYNC_NONE;
+    }
 
     cam_3a_sync_config_t sync_config_3a = {sync_stats_common, af_sync};
 
@@ -13103,7 +13120,42 @@ int32_t QCameraParameters::setDualCamBundleInfo(bool enable_sync,
         rc = sendDualCamCmd(CAM_DUAL_CAMERA_BUNDLE_INFO,
                 num_cam, &bundle_info[0]);
     }
-    else {
+    else if (m_bDualCameraMode) {
+        if(enable_sync) {
+            syncControl = CAM_SYNC_RELATED_SENSORS_ON;
+        } else {
+            syncControl = CAM_SYNC_RELATED_SENSORS_OFF;
+        }
+        if (m_pCapability->position == CAM_POSITION_BACK_AUX) {
+            mode = CAM_MODE_SECONDARY;
+            type = CAM_TYPE_AUX;
+        } else {
+            mode = CAM_MODE_PRIMARY;
+            type = CAM_TYPE_MAIN;
+        }
+
+        role = CAM_ROLE_BAYER;
+        bundle_info.sync_control =
+                (cam_sync_related_sensors_control_t)syncControl;
+        bundle_info.sync_mechanism = DUALCAM_SYNC_MECHANISM;
+        bundle_info.mode = (cam_sync_mode_t)mode;
+        bundle_info.type = (cam_sync_type_t)type;
+        bundle_info.cam_role = (cam_dual_camera_role_t)role;
+        bundle_info.sync_3a_config.sync_mode_stats = CAM_3A_SYNC_FOLLOW;
+        bundle_info.sync_3a_config.sync_mode_af = CAM_3A_SYNC_FOLLOW;
+        bundle_info.related_sensor_session_id =
+          bundle_cam_idx==CAM_MODE_PRIMARY ? sessionId[CAM_MODE_SECONDARY] :
+            sessionId[CAM_MODE_PRIMARY];
+        bundle_info.perf_mode = CAM_PERF_NONE;
+        num_cam++;
+        LOGI("bundle_cam_idx %d mode %d type %d sync control %d related session %d",
+          bundle_cam_idx, mode, type, syncControl,
+          bundle_info.related_sensor_session_id);
+
+        setRelatedCamSyncInfo(&bundle_info);
+        rc = sendDualCamCmd(CAM_DUAL_CAMERA_BUNDLE_INFO,
+                num_cam, &bundle_info);
+    } else {
         //Dual camera through HAL Muxer
         if(enable_sync) {
             syncControl = CAM_SYNC_RELATED_SENSORS_ON;
@@ -13123,6 +13175,7 @@ int32_t QCameraParameters::setDualCamBundleInfo(bool enable_sync,
         } else if (m_pCapability->lens_type == CAM_LENS_TELE) {
             role = CAM_ROLE_TELE;
         }
+
         bundle_info.sync_control =
                 (cam_sync_related_sensors_control_t)syncControl;
         bundle_info.sync_mechanism = DUALCAM_SYNC_MECHANISM;
@@ -13170,8 +13223,10 @@ int32_t QCameraParameters::sendDualCamCmd(cam_dual_camera_cmd_type type,
     }
 
     for (int i = 0; i < MM_CAMERA_MAX_CAM_CNT; i++) {
-        memset(m_pDualCamCmdPtr[i], 0,
+        if (m_pDualCamCmdPtr[i] != NULL) {
+            memset(m_pDualCamCmdPtr[i], 0,
                 sizeof(cam_dual_camera_cmd_info_t));
+        }
     }
 
     switch(type) {
@@ -14873,12 +14928,21 @@ bool QCameraParameters::setStreamConfigure(bool isCapture,
                 stream_config_info.is_type[k]);
     }
 
-    if ((rc == NO_ERROR) && isDualCamera()) {
+    if ((rc == NO_ERROR) && (isDualCamera() || m_bDualCameraMode) ) {
         bool syncCams = true;
         if (DUALCAM_SYNC_MECHANISM == CAM_SYNC_NO_SYNC) {
             syncCams = false;
         }
         bundleRelatedCameras(syncCams);
+    }
+
+    if (m_bDualCameraMode){
+        //enable frame sync for dual camera
+        m_bFrameSyncEnabled = 1; // setFrameSyncEnabled(TRUE);
+        if (m_bMainCamera)
+            stream_config_info.sync_type = CAM_TYPE_MAIN;
+        else
+            stream_config_info.sync_type = CAM_TYPE_AUX;
     }
 
     rc = sendStreamConfigInfo(stream_config_info);
@@ -16359,7 +16423,61 @@ int32_t QCameraParameters::setDualLedCalibration(const QCameraParameters& params
 }
 
 /*===========================================================================
- * FUNCTION   : setDualLedCalibration
+ * FUNCTION   : setDualCameraMode
+ *
+ * DESCRIPTION: set dual led calibration
+ *
+ * PARAMETERS :
+ *   @params  : user setting parameters
+ *
+ * RETURN     : int32_t type of status
+ *              NO_ERROR  -- success
+ *              none-zero failure code
+ *==========================================================================*/
+int32_t QCameraParameters::setDualCameraMode(const QCameraParameters& params)
+{
+    const char *str = params.get(KEY_QC_DUAL_CAMERA_MODE);
+    const char *prev_str = get(KEY_QC_DUAL_CAMERA_MODE);
+    int value;
+
+    if (str != NULL) {
+        if (prev_str == NULL || strcmp(str, prev_str) != 0) {
+            value = lookupAttr(ON_OFF_MODES_MAP, PARAM_MAP_SIZE(ON_OFF_MODES_MAP),
+                    str);
+            m_bDualCameraMode = value;
+        }
+    }
+    if (m_bDualCameraMode) {
+        mDualCamId  = params.getInt(KEY_QC_DUAL_CAMERA_ID);
+        str = params.get(KEY_QC_DUAL_CAMERA_MAIN_CAMERA);
+        prev_str = get(KEY_QC_DUAL_CAMERA_MAIN_CAMERA);
+        if (prev_str == NULL || strcmp(str, prev_str) != 0) {
+            value = lookupAttr(TRUE_FALSE_MODES_MAP, PARAM_MAP_SIZE(TRUE_FALSE_MODES_MAP),
+                    str);
+        m_bMainCamera = value;
+        }
+    }
+    LOGI("Dual Camera Mode %d, Dual CamId %d, Main Camera %d",
+      m_bDualCameraMode, mDualCamId, m_bMainCamera);
+    return NO_ERROR;
+}
+
+/*===========================================================================
+ * FUNCTION   : getDualCameraMode
+ *
+ * DESCRIPTION: get dual camera mode
+ *
+ * PARAMETERS :
+ *
+ * RETURN     : Dual camera mode status
+ *==========================================================================*/
+bool QCameraParameters::getDualCameraMode()
+{
+    return m_bDualCameraMode;
+}
+
+/*===========================================================================
+ * FUNCTION   : setLedCalibration
  *
  * DESCRIPTION: set Dual Led Calibration
  *
