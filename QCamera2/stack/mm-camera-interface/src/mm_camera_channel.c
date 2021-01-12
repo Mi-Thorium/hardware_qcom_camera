@@ -617,6 +617,9 @@ static void mm_channel_process_stream_buf(mm_camera_cmdcb_t * cmd_cb,
                     // we should not use it as matched dual camera frames
                     info.num_nodes = 0;
                 }
+                if (ch_obj->bracketingState == MM_CHANNEL_BRACKETING_STATE_ACTIVE) {
+                    ch_obj->req_type = MM_CAMERA_REQ_SUPER_BUF;
+                }
             }
             mm_frame_sync_unlock_queues();
         } else {

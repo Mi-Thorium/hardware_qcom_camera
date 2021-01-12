@@ -5307,7 +5307,8 @@ int QCamera2HardwareInterface::takePicture()
             // It will be handled along with PRIMARY camera takePicture request
             mm_camera_req_buf_t buf;
             memset(&buf, 0x0, sizeof(buf));
-            if ((!mParameters.isAdvCamFeaturesEnabled() &&
+            if (((!mParameters.isAdvCamFeaturesEnabled() ||
+                    mParameters.isDualCameraAdvCamFeatures()) &&
                     !mFlashNeeded &&
                     !isLongshotEnabled() &&
                     isFrameSyncEnabled()) &&
