@@ -903,6 +903,22 @@ int CameraTest::run()
             printf("invalid command\n");
             }
         }
+    } else if (config_.testSnapshot == true
+      && config_.enable_frame_sync) {
+        printf("waiting for 3 seconds for exposure to settle...\n");
+        /* sleep required to settle the exposure before taking snapshot.
+           This app does not provide interactive feedback to user
+           about the exposure */
+        sleep(3);
+        for (int i=0; i<camArray.size(); i++) {
+            camId = camArray[i];
+            printf("take picture camId %d\n", camId);
+            rc = camera_[camId]->takePicture();
+            if (rc) {
+                printf("camId %d takePicture failed\n", camId);
+                exit(EXIT_FAILURE);
+            }
+        }
     } else if (config_.testSnapshot == true) {
         printf("waiting for 3 seconds for exposure to settle...\n");
         /* sleep required to settle the exposure before taking snapshot.
