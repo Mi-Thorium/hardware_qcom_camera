@@ -4577,6 +4577,15 @@ int32_t QCamera2HardwareInterface::unconfigureAdvancedCapture()
     mParameters.setQuadraCfaMode(false, true);
     mParameters.setRawCaptureMode(false);
 
+    if (getRelatedCamSyncInfo()->mode == CAM_MODE_SECONDARY) {
+        rc = mParameters.setToneMapMode(true, true);
+        if (rc != NO_ERROR) {
+            LOGW("Failed to enable tone map for secondary camera");
+        }
+        LOGH("X Secondary Camera, no need to process!");
+        return rc;
+    }
+
     if (mAdvancedCaptureConfigured) {
 
         mAdvancedCaptureConfigured = false;
@@ -4662,6 +4671,10 @@ int32_t QCamera2HardwareInterface::configureAdvancedCapture()
 
     if (getRelatedCamSyncInfo()->mode == CAM_MODE_SECONDARY) {
         mAdvancedCaptureConfigured = false;
+        rc = mParameters.setToneMapMode(false, true);
+        if (rc != NO_ERROR) {
+            LOGW("Failed to disable tone map for secondary camera");
+        }
         // no Advance capture settings for Aux camera
         LOGH("X Secondary Camera, no need to process!! ");
         return rc;
