@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2020, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2015, 2020-2021, The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -136,7 +136,7 @@ enum AppLoglevel {
 */
 struct TestConfig
 {
-    bool dumpFrames;
+    uint32_t dumpInterval;
     bool infoMode;
     bool testVideo;
     bool testSnapshot;
@@ -202,10 +202,7 @@ private:
     TestConfig config_;
     vector<int> camArray;
 
-    uint32_t sFrameCount_[MAX_CAM], pFrameCount_[MAX_CAM], vFrameCount_[MAX_CAM], mPLastFrameCount[MAX_CAM];
-    float vFpsAvg_[MAX_CAM],pFpsAvg_[MAX_CAM];
-
-    uint64_t vTimeStampPrev_[MAX_CAM],pTimeStampPrev_[MAX_CAM];
+    uint32_t sFrameCount_[MAX_CAM], pFrameCount_[MAX_CAM], vFrameCount_[MAX_CAM];
 
     pthread_cond_t cvPicDone[MAX_CAM];
     pthread_mutex_t mutexPicDone[MAX_CAM];
@@ -225,10 +222,6 @@ CameraTest::CameraTest()
         sFrameCount_[i] = 0;
         pFrameCount_[i] = 0;
         vFrameCount_[i] = 0;
-        pFpsAvg_[i] = 0.0f;
-        vFpsAvg_[i] = 0.0f;
-        pTimeStampPrev_[i] = 0;
-        vTimeStampPrev_[i] = 0,
         pthread_cond_init(&cvPicDone[i], NULL);
         pthread_mutex_init(&mutexPicDone[i], NULL);
     }
@@ -242,10 +235,6 @@ CameraTest::CameraTest(TestConfig config)
         sFrameCount_[i] = 0;
         pFrameCount_[i] = 0;
         vFrameCount_[i] = 0;
-        pFpsAvg_[i] = 0.0f;
-        vFpsAvg_[i] = 0.0f;
-        pTimeStampPrev_[i] = 0;
-        vTimeStampPrev_[i] = 0,
         pthread_cond_init(&cvPicDone[i], NULL);
         pthread_mutex_init(&mutexPicDone[i], NULL);
     }
@@ -402,37 +391,23 @@ string getStringFromEnum(CamFunction e)
  */
 void CameraTest::onPreviewFrame(ICameraFrame* frame)
 {
-    struct timespec t;
     int camidx = frame->camIdx;
-    int64_t now = 0;
-    int64_t diff = 0;
+    char name[MAX_BUF_SIZE];
 
     pFrameCount_[camidx]++ ;
-    if (config_.dumpFrames == true) {
-        t.tv_sec = t.tv_nsec = 0;
-        clock_gettime(CLOCK_MONOTONIC, &t);
-        now = int64_t(t.tv_sec)*1000000000LL + t.tv_nsec;
-        diff = now - pTimeStampPrev_[camidx];
 
-        if(diff > (int64_t)(250*1000000)) {
-            pFpsAvg_[camidx] = (((double)(pFrameCount_[camidx] - mPLastFrameCount[camidx])) *
-              (double)(1000000000)) / (double)diff;
-            mPLastFrameCount[camidx] = pFrameCount_[camidx];
-            pTimeStampPrev_[camidx]  = now;
-        }
+    snprintf(name, MAX_BUF_SIZE, QCAMERA_DUMP_LOCATION "preview_%dx%d_%04d_%llu_%s.yuv",
+      pSize_[camidx].width, pSize_[camidx].height, pFrameCount_[camidx], frame->timeStamp,
+      camidx==0?"L":"R");
 
-        if (pFrameCount_[camidx] > 0 && pFrameCount_[camidx] % 30 == 0) {
-            char name[MAX_BUF_SIZE];
-
-            snprintf(name, MAX_BUF_SIZE, QCAMERA_DUMP_LOCATION "preview_%dx%d_%04d_%llu_%s.yuv",
-              pSize_[camidx].width, pSize_[camidx].height, pFrameCount_[camidx], frame->timeStamp,
-              camidx==0?"L":"R");
-
-            dumpToFile(frame->data, frame->size, name, frame->timeStamp);
+    if (config_.dumpInterval > 0) {
+        if ((pFrameCount_[camidx] + camidx) > 0 && (config_.dumpInterval > 0)
+            && (pFrameCount_[camidx] + camidx) % config_.dumpInterval == 0) {
+                dumpToFile(frame->data, frame->size, name, frame->timeStamp);
         }
     }else{
-        if (pFrameCount_[camidx] > 0 && pFrameCount_[camidx] % 30 == 0)
-            printf("on preview frame : %s frame count %d\n", camidx==0?"L":"R",pFrameCount_[camidx]);
+        if((pFrameCount_[camidx] + camidx) % 30 == 0)
+             printf("on preview frame : %s\n", name);
     }
 }
 
@@ -470,24 +445,23 @@ void CameraTest::onPictureFrame(ICameraFrame* frame)
 void CameraTest::onVideoFrame(ICameraFrame* frame)
 {
     int camidx = frame->camIdx;
-    uint64_t diff = frame->timeStamp - vTimeStampPrev_[camidx];
+    char name[MAX_BUF_SIZE];
 
     vFrameCount_[camidx]++;
+    snprintf(name, MAX_BUF_SIZE, QCAMERA_DUMP_LOCATION "video_%dx%d_%04d_%llu_%s.yuv",
+      vSize_[camidx].width, vSize_[camidx].height, vFrameCount_[camidx], frame->timeStamp,
+      camidx==0?"L":"R");
 
-    if (config_.dumpFrames == true) {
-        vFpsAvg_[camidx] = ((vFpsAvg_[camidx] * vFrameCount_[camidx]) + (1e9 / diff)) / (vFrameCount_[camidx] + 1);
-
-        vTimeStampPrev_[camidx]  = frame->timeStamp;
-        if (vFrameCount_[camidx] > 0 && vFrameCount_[camidx] % 30 == 0) {
-            char name[MAX_BUF_SIZE];
-            snprintf(name, MAX_BUF_SIZE, QCAMERA_DUMP_LOCATION "video_%dx%d_%04d_%llu_%s.yuv",
-              pSize_[camidx].width, pSize_[camidx].height, vFrameCount_[camidx], frame->timeStamp,
-              camidx==0?"L":"R");
+    if (config_.dumpInterval > 0) {
+        //(camidx + 1) * 2 means don't dump the same frame id
+        //for both cam0 and cam1 preview and video streams at the same time
+        if ((vFrameCount_[camidx] + (camidx + 1) * 2) > 0 && config_.dumpInterval > 0
+            && ((vFrameCount_[camidx] + (camidx + 1) * 2) % config_.dumpInterval) == 0) {
             dumpToFile(frame->data, frame->size, name, frame->timeStamp);
         }
     }else{
-        if (vFrameCount_[camidx] > 0 && vFrameCount_[camidx] % 30 == 0)
-            printf("on video frame : %s frame count: %d\n", camidx==0?"L":"R", vFrameCount_[camidx]);
+        if((vFrameCount_[camidx] + camidx) % 30 == 0)
+            printf("on video frame : %s\n", name);
     }
 }
 
@@ -548,7 +522,10 @@ const char usageStr[] =
     "usage: camera-test-stereo [options]\n"
     "\n"
     "  -t <duration>   capture duration in seconds [10]\n"
-    "  -d              dump frames\n"
+    "  -d              the interval number for dumping frames\n"
+    "                    - 1  : dump every frame \n"
+    "                    - 2  : dump per 2 frames\n"
+    "                    ...                     \n"
     "  -i              info mode\n"
     "                    - print camera capabilities\n"
     "                    - streaming will not be started\n"
@@ -574,6 +551,7 @@ const char usageStr[] =
     "                    1: error\n"
     "                    2: info\n"
     "                    3: debug\n"
+    "  -b <pic quantity>   set how many pics you want to capture\n"
     "  -h              print this message\n"
 ;
 
@@ -837,8 +815,6 @@ int CameraTest::run()
         sFrameCount_[camId] = 0;
         pFrameCount_[camId] = 0;
         vFrameCount_[camId] = 0;
-        pFpsAvg_[camId] = 0.0f;
-        vFpsAvg_[camId] = 0.0f;
         rc = setParameters(camId);
         if (rc) {
             printf("setParameters failed\n");
@@ -945,7 +921,6 @@ int CameraTest::run()
              camId = camArray[i];
              printf("stop recording id : %d\n",i);
              camera_[camId]->stopRecording();
-             printf("Average video FPS camId[%d] = %.2f\n",camId,vFpsAvg_[camId]);
          }
     }
 
@@ -953,7 +928,6 @@ int CameraTest::run()
         camId = camArray[i];
         printf("stop preview  id : %d\n",i);
         camera_[camId]->stopPreview();
-        printf("Average preview FPS camId[%d] = %.2f\n",camId, pFpsAvg_[camId]);
     }
 
 del_camera:
@@ -974,7 +948,7 @@ del_camera:
 static int setDefaultConfig(TestConfig &cfg) {
 
     cfg.outputFormat = YUV_FORMAT;
-    cfg.dumpFrames = false;
+    cfg.dumpInterval = 0;
     cfg.runTime = 10;
     cfg.infoMode = false;
     cfg.testSnapshot = false;
@@ -1030,7 +1004,7 @@ static TestConfig parseCommandline(int argc, char* argv[])
 
     int c;
 
-    while ((c = getopt(argc, argv, "BShdt:i:s:f:V:v:b:")) != -1) {
+    while ((c = getopt(argc, argv, "BShd:t:i:s:f:V:v:b:")) != -1) {
         switch (c) {
         case 'f':
             {
@@ -1053,7 +1027,7 @@ static TestConfig parseCommandline(int argc, char* argv[])
     setDefaultConfig(cfg);
 
     optind = 1;
-    while ((c = getopt(argc, argv, "BShdt:i:s:f:V:v:b:")) != -1) {
+    while ((c = getopt(argc, argv, "BShd:t:i:s:f:V:v:b:")) != -1) {
         switch (c) {
         case 't':
             cfg.runTime = atoi(optarg);
@@ -1102,8 +1076,16 @@ static TestConfig parseCommandline(int argc, char* argv[])
                 break;
             }
         case 'd':
-            cfg.dumpFrames = true;
-            break;
+            {
+                uint32_t interval = atoi(optarg);
+                if (interval > 0) {
+                    cfg.dumpInterval = interval;
+                } else {
+                    cfg.dumpInterval = 100;
+                }
+                printf("dump interval = %d\n", cfg.dumpInterval);
+                break;
+            }
         case 'i':
             cfg.infoMode = true;
             break;
@@ -1142,7 +1124,7 @@ int main(int argc, char* argv[])
         config.func = CAM_FUNC_STEREO;
         setDefaultConfig(config);
         config.picSize = i5MSize;
-        config.dumpFrames = false;
+        config.dumpInterval = 0;
         config.testSnapshot = true;
         config.is_interact = true;
         config.enable_frame_sync = false;
