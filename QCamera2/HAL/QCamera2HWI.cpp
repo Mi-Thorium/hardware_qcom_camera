@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2019, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2019,2021, The Linux Foundation. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions are
@@ -7129,7 +7129,7 @@ int32_t QCamera2HardwareInterface::processZSLCaptureDone()
             && !mParameters.getRawZsl()) {
         rc = unconfigureAdvancedCapture();
     }
-
+    m_stateMachine.setPreviewCallbackNeeded(true);
     return rc;
 }
 
