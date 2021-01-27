@@ -81,6 +81,8 @@ extern "C" {
 #define CAMERA_INITIAL_MAPPABLE_PREVIEW_BUFFERS 5
 #define CAMERA_MAX_PARAM_APPLY_DELAY 3
 
+#define EXTRA_UNMATCHED_FRAME_COUNT 10
+
 namespace qcamera {
 
 extern cam_capability_t *gCamCapability[MM_CAMERA_MAX_NUM_SENSORS];
@@ -8298,7 +8300,8 @@ int32_t QCamera2HardwareInterface::addSnapshotChannel()
     attr.look_back = 0; //wait for future frame for liveshot
     attr.post_frame_skip = mParameters.getZSLBurstInterval();
     attr.water_mark = 1; //hold min buffers possible in Q
-    attr.max_unmatched_frames = mParameters.getMaxUnmatchedFramesInQueue();
+    attr.max_unmatched_frames = mParameters.getMaxUnmatchedFramesInQueue()
+                                            + EXTRA_UNMATCHED_FRAME_COUNT;
     attr.priority = MM_CAMERA_SUPER_BUF_PRIORITY_LOW;
     rc = pChannel->init(&attr, snapshot_channel_cb_routine, this);
     if (rc != NO_ERROR) {
