@@ -156,6 +156,8 @@ static int32_t perfLockParamsTakeSnapshot[] = {
 };
 
 static int32_t perfLockParamsTakeSnapshotSDM429[] = {
+    // Disable power collapse
+    MPCTLV3_ALL_CPUS_PWR_CLPS_DIS,          0x1,
     // Set little cluster cores to 1.555 GHz
     MPCTLV3_MIN_FREQ_CLUSTER_LITTLE_CORE_0, 0x613,
     MPCTLV3_MIN_FREQ_CLUSTER_LITTLE_CORE_1, 0x613,
