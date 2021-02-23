@@ -81,7 +81,9 @@ extern "C" {
 #define CAMERA_INITIAL_MAPPABLE_PREVIEW_BUFFERS 5
 #define CAMERA_MAX_PARAM_APPLY_DELAY 3
 
-#define EXTRA_UNMATCHED_FRAME_COUNT 10
+#define EXTRA_UNMATCHED_FRAME_COUNT 2
+#define EXTRA_PERVIEW_BUFFER_FOR_VIDEO 10
+
 
 namespace qcamera {
 
@@ -2756,7 +2758,8 @@ uint8_t QCamera2HardwareInterface::getBufNumRequired(
             // Thumbnail will not be derived from preview for HFR live snapshot case.
             if ((mParameters.getRecordingHintValue() == true)
                     && (!mParameters.isHfrMode())) {
-                bufferCnt += EXTRA_ZSL_PREVIEW_STREAM_BUF;
+                bufferCnt += (EXTRA_ZSL_PREVIEW_STREAM_BUF +
+                              EXTRA_PERVIEW_BUFFER_FOR_VIDEO);
             }
             //Adding Extra preview buffers for 60FPS usecase.
             mParameters.getPreviewFpsRange(&minPrevFps, &maxPrevFps);
