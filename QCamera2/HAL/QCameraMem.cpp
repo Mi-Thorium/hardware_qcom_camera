@@ -2302,6 +2302,7 @@ int32_t QCameraGrallocMemory::dequeueBuffer()
             }
             struct ion_fd_data ion_info_fd;
             memset(&ion_info_fd, 0, sizeof(ion_info_fd));
+            ion_info_fd.fd = mPrivateHandle[dequeuedIdx]->fd;
 #ifndef TARGET_ION_ABI_VERSION
             ion_info_fd.fd = mPrivateHandle[dequeuedIdx]->fd;
             if (ioctl(mMemInfo[dequeuedIdx].main_ion_fd,
@@ -2310,11 +2311,11 @@ int32_t QCameraGrallocMemory::dequeueBuffer()
                 return BAD_INDEX;
             }
 #else
-           if(ion_import(mMemInfo[dequeuedIdx].main_ion_fd,  ion_info_fd.fd,  &ion_info_fd.handle) < 0)
-           {
-               LOGE("ION import failed\n");
-               return BAD_INDEX;
-           }
+           //if(ion_import(mMemInfo[dequeuedIdx].main_ion_fd,  ion_info_fd.fd,  &ion_info_fd.handle) < 0)
+           //{
+           //    LOGE("ION import failed\n");
+           //    return BAD_INDEX;
+           //}
 #endif //TARGET_ION_ABI_VERSION
             setMetaData(mPrivateHandle[dequeuedIdx], UPDATE_COLOR_SPACE,
                     &mColorSpace);
@@ -2335,7 +2336,11 @@ int32_t QCameraGrallocMemory::dequeueBuffer()
             mMemInfo[dequeuedIdx].fd = mPrivateHandle[dequeuedIdx]->fd;
             mMemInfo[dequeuedIdx].size =
                     (size_t)mPrivateHandle[dequeuedIdx]->size;
+#ifndef TARGET_ION_ABI_VERSION
             mMemInfo[dequeuedIdx].handle = ion_info_fd.handle;
+#else
+            mMemInfo[dequeuedIdx].handle = ion_info_fd.fd;
+#endif //TARGET_ION_ABI_VERSION
 
             mMappableBuffers++;
         }
