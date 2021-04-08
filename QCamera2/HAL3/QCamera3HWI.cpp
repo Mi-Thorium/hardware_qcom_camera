@@ -1375,6 +1375,16 @@ int QCamera3HardwareInterface::validateStreamDimensions(
             rotatedWidth = newStream->height;
         }
 
+        /* We error out even if a single stream has unsupported size set */
+        if ((int32_t)rotatedWidth <= 0 || (int32_t)rotatedHeight <= 0) {
+            LOGE("Error: Unsupported size: %d x %d type: %d array size: %d x %d",
+                    rotatedWidth, rotatedHeight, newStream->format,
+                    gCamCapability[mCameraId]->active_array_size.width,
+                    gCamCapability[mCameraId]->active_array_size.height);
+            rc = -EINVAL;
+            break;
+        }
+
         /*
         * Sizes are different for each type of stream format check against
         * appropriate table.
