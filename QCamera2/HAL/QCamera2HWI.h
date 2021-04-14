@@ -174,7 +174,8 @@ public:
                           mJpegCallbackCookie(NULL),
                           mParent (parent),
                           mDataQ(releaseNotifications, this),
-                          mActive(false){}
+                          mActive(false),
+                          mCBInprogress(false){}
 
     virtual ~QCameraCbNotifier();
 
@@ -208,6 +209,7 @@ private:
     QCameraQueue     mDataQ;
     QCameraCmdThread mProcTh;
     bool             mActive;
+    bool             mCBInprogress;
 };
 
 class QCameraDisplay;
