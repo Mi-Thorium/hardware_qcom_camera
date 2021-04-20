@@ -691,7 +691,7 @@ int CameraTest::setParameters(int camId)
         case 0:
             if (config_.enable_ae_bracket) {
                 params_[camId].set("ae-bracket-hdr", "AE-Bracket");
-                params_[camId].set("capture-burst-exposures", "0,-6,+6");
+                params_[camId].set("capture-burst-exposures", "0,-4,+4");
             }
         case 1:
             params_[camId].set("preview-format", "yuv420sp");
