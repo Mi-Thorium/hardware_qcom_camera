@@ -379,7 +379,7 @@ bool QCameraCommon::is_target_SDM450()
 
 bool QCameraCommon::is_target_SDM429()
 {
-    return (parseHWID() == 354 || parseHWID() == 416);
+    return (parseHWID() == 354 || parseHWID() == 416 || parseHWID() == 437);
 }
 
 /*===========================================================================
