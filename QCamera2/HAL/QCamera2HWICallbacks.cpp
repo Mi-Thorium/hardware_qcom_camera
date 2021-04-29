@@ -3594,7 +3594,6 @@ void * QCameraCbNotifier::cbNotifyRoutine(void * data)
                 if (NULL != cb) {
                     LOGD("cb type %d received",
                               cb->cb_type);
-
                     if (pme->mParent->msgTypeEnabledWithLock(cb->msg_type)) {
                         switch (cb->cb_type) {
                         case QCAMERA_NOTIFY_CALLBACK:
@@ -3619,6 +3618,7 @@ void * QCameraCbNotifier::cbNotifyRoutine(void * data)
                             break;
                         case QCAMERA_DATA_CALLBACK:
                             {
+                                pme->mCBInprogress = true;
                                 if (pme->mDataCb) {
                                     pme->mDataCb(cb->msg_type,
                                                  cb->data,
@@ -3632,6 +3632,7 @@ void * QCameraCbNotifier::cbNotifyRoutine(void * data)
                                     cb->release_cb(cb->user_data, cb->cookie,
                                             cbStatus);
                                 }
+                                pme->mCBInprogress = false;
                             }
                             break;
                         case QCAMERA_DATA_TIMESTAMP_CALLBACK:
@@ -3841,11 +3842,20 @@ void QCameraCbNotifier::setJpegCallBacks(
  *==========================================================================*/
 int32_t QCameraCbNotifier::flushPreviewNotifications()
 {
+    int32_t i = 0;
+
     if (!mActive) {
         LOGE("notify thread is not active");
         return UNKNOWN_ERROR;
     }
     mDataQ.flushNodes(matchPreviewNotifications);
+    //wait util CB completed.
+    while(mCBInprogress == true){
+        LOGE("mCBInprogress is true, wait...");
+        usleep(10 * 1000U);
+	    if(++i > 10)
+	      break;
+    }
     return NO_ERROR;
 }
 
