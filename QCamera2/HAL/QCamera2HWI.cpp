@@ -938,6 +938,10 @@ int QCamera2HardwareInterface::take_picture(struct camera_device *device)
         if (hw->isDualCamera() && (hw->mParameters.getHalPPType() == CAM_HAL_PP_TYPE_BOKEH)) {
             hw->m_perfLockMgr.acquirePerfLock(PERF_LOCK_BOKEH_SNAPSHOT,
                     PERF_LOCK_BOKEH_SNAP_TIMEOUT_MS);
+        } else if (hw->mParameters.isFrameSyncEnabled()) {
+            if (CAM_TYPE_MAIN == hw->getRelatedCamSyncInfo()->type)
+                hw->m_perfLockMgr.acquirePerfLock(PERF_LOCK_DUAL_SYNC_SNAPSHOT,
+                      PERF_LOCK_DUAL_SYNC_SNAP_TIMEOUT_MS);
         } else {
             hw->m_perfLockMgr.acquirePerfLock(PERF_LOCK_TAKE_SNAPSHOT);
         }
@@ -1831,6 +1835,7 @@ QCamera2HardwareInterface::~QCamera2HardwareInterface()
     m_stateMachine.releaseThread();
     closeCamera();
     m_perfLockMgr.releasePerfLock(PERF_LOCK_CLOSE_CAMERA);
+    m_perfLockMgr.releasePerfLock(PERF_LOCK_PRESET);
 
     if (m_pFovControl) {
         delete m_pFovControl;
@@ -1901,6 +1906,7 @@ int QCamera2HardwareInterface::openCamera(struct hw_device_t **hw_device)
     LOGI("[KPI Perf]: E PROFILE_OPEN_CAMERA camera id %d",
             mCameraId);
 
+    m_perfLockMgr.acquirePerfLock(PERF_LOCK_PRESET);
     m_perfLockMgr.acquirePerfLock(PERF_LOCK_OPEN_CAMERA);
 #ifdef FDLEAK_FLAG
     property_get("persist.vendor.camera.fdleak.enable", prop, "0");
@@ -2737,7 +2743,7 @@ uint8_t QCamera2HardwareInterface::getBufNumRequired(
                         mParameters.getNumOfExtraBuffersForImageProc() +
                         mParameters.getNumOfExtraBuffersForPreview() +
                         mParameters.getNumOfExtraHDRInBufsIfNeeded();
-                if (isDualCamera()) {
+                if (isDualCamera() || mParameters.isFrameSyncEnabled()) {
                     bufferCnt += zslQBuffers;
                     if ((mParameters.getHalPPType() == CAM_HAL_PP_TYPE_BOKEH) &&
                             (bufferCnt < CAMERA_BOKEH_MODE_MIN_BUFS)) {
@@ -2809,7 +2815,7 @@ uint8_t QCamera2HardwareInterface::getBufNumRequired(
                     //ISP allocates native buffers in YUV case
                     bufferCnt -= CAMERA_ISP_PING_PONG_BUFFERS;
                 }
-                if (isDualCamera()) {
+                if (isDualCamera() || mParameters.isFrameSyncEnabled()) {
                     bufferCnt += zslQBuffers;
                 }
             } else {
@@ -2909,7 +2915,7 @@ uint8_t QCamera2HardwareInterface::getBufNumRequired(
                             mParameters.getNumOfExtraHDROutBufsIfNeeded() +
                             mParameters.getNumOfExtraBuffersForImageProc() +
                             EXTRA_ZSL_PREVIEW_STREAM_BUF;
-                if (isDualCamera()) {
+                if (isDualCamera() || mParameters.isFrameSyncEnabled()) {
                     bufferCnt += zslQBuffers;
                 }
             } else {

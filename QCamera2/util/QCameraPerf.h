@@ -44,11 +44,14 @@ namespace qcamera {
 #define PERF_LOCK_BOKEH_SNAP_TIMEOUT_MS 5000
 #define POWERHINT_PREVIEW_ENCODE 4913
 #define POWERHINT_HFR 4915
+#define PERF_LOCK_DUAL_SYNC_SNAP_TIMEOUT_MS 5000
+
 typedef int32_t (*perfLockAcquire)(int, int, int[], int);
 typedef int32_t (*perfLockRelease)(int);
 typedef int32_t  (*perf_hint)(int, char *, int, int);
 
 typedef enum {
+    PERF_LOCK_PRESET,
     PERF_LOCK_OPEN_CAMERA,
     PERF_LOCK_CLOSE_CAMERA,
     PERF_LOCK_START_PREVIEW,
@@ -61,6 +64,7 @@ typedef enum {
     PERF_LOCK_POWERHINT_ENCODE,
     PERF_LOCK_POWERHINT_HFR,
     PERF_LOCK_BOKEH_SNAPSHOT,
+    PERF_LOCK_DUAL_SYNC_SNAPSHOT,
     PERF_LOCK_FLUSH,
     PERF_LOCK_COUNT
 } PerfLockEnum;
