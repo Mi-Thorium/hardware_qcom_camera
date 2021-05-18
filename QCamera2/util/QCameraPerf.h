@@ -45,6 +45,7 @@ namespace qcamera {
 #define POWERHINT_PREVIEW_ENCODE 4913
 #define POWERHINT_HFR 4915
 #define PERF_LOCK_DUAL_SYNC_SNAP_TIMEOUT_MS 5000
+#define PERF_LOCK_QCFA_SNAP_TIMEOUT_MS 3000
 
 typedef int32_t (*perfLockAcquire)(int, int, int[], int);
 typedef int32_t (*perfLockRelease)(int);

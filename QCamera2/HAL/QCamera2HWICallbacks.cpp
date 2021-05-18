@@ -422,6 +422,10 @@ void QCamera2HardwareInterface::capture_channel_cb_routine(mm_camera_super_buf_t
         return;
     }
     *frame = *recvd_frame;
+    if(pme->mParameters.getQuadraCfa()) {
+        pme->m_perfLockMgr.acquirePerfLock(PERF_LOCK_TAKE_SNAPSHOT,
+            PERF_LOCK_QCFA_SNAP_TIMEOUT_MS);
+    }
 
     if (recvd_frame->num_bufs > 0) {
         LOGI("[KPI Perf]: superbuf frame_idx %d",
