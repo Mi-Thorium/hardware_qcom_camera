@@ -3158,7 +3158,8 @@ int32_t mm_channel_superbuf_comp_and_enqueue(
         }
     }
 
-    if ((mm_channel_util_seq_comp_w_rollover(buf_info->frame_idx,
+    if (CAM_STREAM_TYPE_OFFLINE_PROC != buf_info->buf->stream_type &&
+         (mm_channel_util_seq_comp_w_rollover(buf_info->frame_idx,
             queue->expected_frame_id) < 0) &&
             (mm_channel_validate_super_buf(ch_obj, queue, buf_info) <= 0)) {
         LOGH("incoming buf id(%d) is older than expected buf id(%d), will discard it",

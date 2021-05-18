@@ -1201,6 +1201,15 @@ void QCamera2HardwareInterface::nodisplay_preview_stream_cb_routine(
         return;
     }
 
+    if(pme->m_bPreviewStarted) {
+        LOGI("[KPI Perf] : PROFILE_FIRST_PREVIEW_FRAME");
+
+        pme->m_perfLockMgr.releasePerfLock(PERF_LOCK_START_PREVIEW);
+        pme->m_perfLockMgr.releasePerfLock(PERF_LOCK_OPEN_CAMERA);
+        pme->m_bPreviewStarted = false;
+        pme->m_bFirstPreviewFrameReceived = true;
+    }
+
     if (!pme->needProcessPreviewFrame(frame->frame_idx)) {
         LOGH("preview is not running, no need to process");
         stream->bufDone(frame->buf_idx);
