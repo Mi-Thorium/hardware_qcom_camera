@@ -4589,9 +4589,10 @@ int32_t QCamera2HardwareInterface::unconfigureAdvancedCapture()
 {
     int32_t rc = NO_ERROR;
 
-    /*Disable Quadra CFA & RAW Capture mode*/
-    LOGH("Disabling Quadra CFA & RAW ZSL Capture mode ");
+    /*Disable Quadra CFA & Bayer CAC & RAW Capture mode*/
+    LOGH("Disabling Quadra CFA & Bayer CAC & RAW ZSL Capture mode ");
     mParameters.setQuadraCfaMode(false, true);
+    mParameters.setBayerCACMode(false, true);
     mParameters.setRawCaptureMode(false);
 
     if (getRelatedCamSyncInfo()->mode == CAM_MODE_SECONDARY) {
@@ -4677,6 +4678,8 @@ int32_t QCamera2HardwareInterface::configureAdvancedCapture()
     }
     /*Enable Quadra CFA mode*/
     mParameters.setQuadraCfaMode(true, true);
+    /*Enable Bayer CAC mode*/
+    mParameters.setBayerCACMode(true, true);
     /*Enable RAW Capture mode*/
     mParameters.setRawCaptureMode(true);
 
@@ -5677,6 +5680,7 @@ int QCamera2HardwareInterface::stopCaptureChannel(bool destroy)
         mParameters.isNV16PictureFormat() ||
         mParameters.isNV21PictureFormat()) {
         mParameters.setQuadraCfaMode(false, true);
+        mParameters.setBayerCACMode(false, true);
         rc = stopChannel(QCAMERA_CH_TYPE_CAPTURE);
         if (destroy && (NO_ERROR == rc)) {
             // Destroy camera channel but dont release context
@@ -8627,8 +8631,9 @@ int32_t QCamera2HardwareInterface::addCaptureChannel()
             pChannel->setStreamSyncCB(CAM_STREAM_TYPE_PREVIEW,
                     synchronous_stream_cb_routine);
         }
-    //Not adding the postview stream to the capture channel if Quadra CFA is enabled.
-    } else if (!mParameters.getQuadraCfa()) {
+    //Not adding the postview stream to the capture channel if Quadra CFA
+    //or Bayer CAC is enabled.
+    } else if (!mParameters.getQuadraCfa() && !mParameters.getBayerCAC()) {
         rc = addStreamToChannel(pChannel, CAM_STREAM_TYPE_POSTVIEW,
                                 NULL, this);
         if (rc != NO_ERROR) {
@@ -8853,13 +8858,13 @@ int32_t QCamera2HardwareInterface::getPPConfig(cam_pp_feature_config_t &pp_confi
 
     //Checking what feature mask to enable
     if (curIndex == 0) {
-        if (mParameters.getQuadraCfa()) {
+        if (mParameters.getQuadraCfa() || mParameters.getBayerCAC()) {
             feature_set = 2;
         } else {
             feature_set = 0;
         }
     } else if (curIndex == 1) {
-        if (mParameters.getQuadraCfa()) {
+        if (mParameters.getQuadraCfa() || mParameters.getBayerCAC()) {
             feature_set = 0;
         } else {
             feature_set = 1;
@@ -8993,7 +8998,7 @@ int32_t QCamera2HardwareInterface::getPPConfig(cam_pp_feature_config_t &pp_confi
 
             if ((multipass) &&
                     (m_postprocessor.getPPChannelCount() > 1)
-                    && (!mParameters.getQuadraCfa())) {
+                    && (!mParameters.getQuadraCfa() && !mParameters.getBayerCAC())) {
                 pp_config.feature_mask &= ~CAM_QCOM_FEATURE_PP_PASS_2;
                 pp_config.feature_mask &= ~CAM_QCOM_FEATURE_ROTATION;
                 pp_config.feature_mask &= ~CAM_QCOM_FEATURE_CDS;
@@ -9044,8 +9049,13 @@ int32_t QCamera2HardwareInterface::getPPConfig(cam_pp_feature_config_t &pp_confi
             break;
 
         case 2:
-            //Setting feature for Quadra CFA
-            pp_config.feature_mask |= CAM_QCOM_FEATURE_QUADRA_CFA;
+            if (mParameters.getQuadraCfa()) {
+                //Setting feature for Quadra CFA
+                pp_config.feature_mask |= CAM_QCOM_FEATURE_QUADRA_CFA;
+            } else if (mParameters.getBayerCAC()) {
+                //Setting feature for Bayer CAC
+                pp_config.feature_mask |= CAM_QCOM_FEATURE_BAYER_CAC;
+            }
             break;
 
     }
@@ -9440,7 +9450,7 @@ int32_t QCamera2HardwareInterface::preparePreview()
         }
 
         if (mParameters.getofflineRAW() && !mParameters.getQuadraCfa()
-                && !mParameters.getRawZsl()) {
+                && !mParameters.getBayerCAC() && !mParameters.getRawZsl()) {
             addChannel(QCAMERA_CH_TYPE_RAW);
         }
     } else if(isSecureMode()) {
@@ -11704,7 +11714,8 @@ bool QCamera2HardwareInterface::needDeferred(cam_stream_type_t stream_type)
     }
 
     if ((stream_type == CAM_STREAM_TYPE_RAW)
-            && (mParameters.getofflineRAW() && !mParameters.getQuadraCfa())) {
+            && (mParameters.getofflineRAW() && !mParameters.getQuadraCfa()
+            && !mParameters.getBayerCAC())) {
         return FALSE;
     }
 
@@ -11772,7 +11783,8 @@ bool QCamera2HardwareInterface::isRegularCapture()
         !isLongshotEnabled() &&
         !mParameters.isHDREnabled() &&
         !mParameters.getRecordingHintValue() &&
-        !isZSLMode() && (!mParameters.getofflineRAW()|| mParameters.getQuadraCfa())) {
+        !isZSLMode() && (!mParameters.getofflineRAW() || mParameters.getQuadraCfa()
+            || mParameters.getBayerCAC())) {
             ret = true;
     }
     return ret;

@@ -1040,6 +1040,7 @@ QCameraParameters::QCameraParameters()
       mAecFrameBound(0),
       mAecSkipDisplayFrameBound(0),
       m_bQuadraCfa(false),
+      m_bBayerCAC(false),
       mMasterCamera(CAM_TYPE_MAIN),
       m_bRedEyeReduction(false),
       m_bSmallJpegSize(false),
@@ -1200,6 +1201,7 @@ QCameraParameters::QCameraParameters(const String8 &params)
     mAecFrameBound(0),
     mAecSkipDisplayFrameBound(0),
     m_bQuadraCfa(false),
+    m_bBayerCAC(false),
     mMasterCamera(CAM_TYPE_MAIN),
     m_bRedEyeReduction(false),
     m_bSmallJpegSize(false),
@@ -4256,6 +4258,117 @@ int32_t QCameraParameters::setQuadraCfa(const QCameraParameters& params)
 }
 
 /*===========================================================================
+ * FUNCTION   : setBayerCACMode
+ *
+ * DESCRIPTION: enable or disable Bayer CAC mode
+ *
+ * PARAMETERS :
+ *   @enable : enable: 1; disable 0
+ *   @initCommit: if configuration list needs to be initialized and commited
+ *
+ * RETURN     : int32_t type of status
+ *              NO_ERROR  -- success
+ *              none-zero failure code
+ *==========================================================================*/
+int32_t QCameraParameters::setBayerCACMode(uint32_t enable, bool initCommit) {
+
+   int32_t rc = NO_ERROR;
+
+    LOGI("CAC update Bayer CAC %d, enable %d initCommit %d.",
+        getBayerCAC(), enable, initCommit);
+    if (getBayerCAC()) {
+        if (enable) {
+            setOfflineRAW(TRUE);
+        } else  {
+            setOfflineRAW(FALSE);
+        }
+        if (initCommit) {
+            if (initBatchUpdate() < 0) {
+                LOGE("Failed to initialize group update table");
+                return FAILED_TRANSACTION;
+            }
+        }
+        if (ADD_SET_PARAM_ENTRY_TO_BATCH(m_pParamBuf, CAM_INTF_PARM_BAYER_CAC, enable)) {
+            LOGE("Failed to update Bayer CAC mode");
+            return BAD_VALUE;
+        }
+        if (initCommit) {
+            rc = commitSetBatch();
+            if (rc != NO_ERROR) {
+                LOGE("Failed to commit Bayer CAC mode");
+                return rc;
+            }
+        }
+        LOGI("Bayer CAC mode %d ", enable);
+    }
+    return rc;
+}
+
+/*===========================================================================
+ * FUNCTION   : setBayerCAC
+ *
+ * DESCRIPTION: set Bayer CAC mode
+ *
+ * PARAMETERS :
+ *   @params  : user setting parameters
+ *
+ * RETURN     : int32_t type of status
+ *              NO_ERROR  -- success
+ *              none-zero failure code
+ *==========================================================================*/
+int32_t QCameraParameters::setBayerCAC(const QCameraParameters& params)
+{
+    bool prev_BayerCAC = getBayerCAC();
+    int32_t rc = NO_ERROR;
+    int32_t value;
+    char strCAC[PROPERTY_VALUE_MAX];
+
+    LOGD("CAC update Bayer CAC prev %d", prev_BayerCAC);
+    memset(strCAC, 0, sizeof(strCAC));
+    property_get("persist.vendor.camera.bayerCAC", strCAC, "0");
+    uint8_t propCAC = (uint8_t)atoi(strCAC);
+    if (propCAC) {
+        LOGI("Bayer CAC mode selected");
+        m_bBayerCAC = TRUE;
+    } else {
+        LOGI("Bayer CAC mode not selected");
+        m_bBayerCAC = FALSE;
+    }
+
+    if (m_bRecordingHint_new && m_bBayerCAC) {
+        LOGI("disable Bayer CAC in recording mode");
+        m_bBayerCAC = false;
+    }
+
+    value = m_bBayerCAC;
+    if (prev_BayerCAC == m_bBayerCAC) {
+        if (m_bZslMode && m_bBayerCAC) {
+          m_bNeedRestart = TRUE;
+          setZslMode(FALSE);
+        } else {
+          LOGI("No change in Bayer CAC mode");
+        }
+    } else {
+        if (m_bZslMode && m_bBayerCAC) {
+            m_bNeedRestart = TRUE;
+            setZslMode(FALSE);
+        } else {
+            const char *str_val  = params.get(KEY_QC_ZSL);
+            int32_t value = lookupAttr(ON_OFF_MODES_MAP, PARAM_MAP_SIZE(ON_OFF_MODES_MAP),
+                    str_val);
+            if (value != NAME_NOT_FOUND && value) {
+                rc = setZslMode(value);
+                // ZSL mode changed, need restart preview
+                m_bNeedRestart = true;
+            }
+        }
+        setReprocCount();
+    }
+    LOGI("Bayer CAC mode = %d", m_bBayerCAC);
+    return rc;
+}
+
+/*===========================================================================
  * FUNCTION   : setRawZsl
  *
  * DESCRIPTION: set RAW ZSL mode
@@ -5857,6 +5970,7 @@ int32_t QCameraParameters::updateParameters(const String8& p,
     if ((rc = setDualCameraMode(params)))               final_rc = rc;
 
     setQuadraCfa(params);
+    setBayerCAC(params);
     setVideoBatchSize();
     setLowLightCapture();
     setAsymmetricSnapMode();
@@ -10983,7 +11097,7 @@ int32_t QCameraParameters::getStreamFormat(cam_stream_type_t streamType,
         break;
     case CAM_STREAM_TYPE_RAW:
         if ((isRdiMode()) || (getofflineRAW())|| (getQuadraCfa())
-                || (isSecureMode()) || (getRawZsl())) {
+                || (getBayerCAC()) || (isSecureMode()) || (getRawZsl())) {
             format = m_pCapability->rdi_mode_stream_fmt;
             if (getRawZsl()) {
                 if (m_pCapability->color_arrangement == CAM_FILTER_ARRANGEMENT_BGGR) {
@@ -11013,7 +11127,7 @@ int32_t QCameraParameters::getStreamFormat(cam_stream_type_t streamType,
         }
         break;
     case CAM_STREAM_TYPE_OFFLINE_PROC:
-        if (getQuadraCfa()) {
+        if (getQuadraCfa() || getBayerCAC()) {
             if (m_pCapability->color_arrangement == CAM_FILTER_ARRANGEMENT_BGGR) {
                 format = CAM_FORMAT_BAYER_IDEAL_RAW_PLAIN16_10BPP_BGGR;
             } else if (m_pCapability->color_arrangement == CAM_FILTER_ARRANGEMENT_GBRG) {
@@ -11366,6 +11480,21 @@ bool QCameraParameters::getQuadraCfa()
 {
     return m_bQuadraCfa;
 }
+
+/*===========================================================================
+ * FUNCTION   : getBayerCAC
+ *
+ * DESCRIPTION: get Bayer CAC mode
+ *
+ * PARAMETERS :
+ *
+ * RETURN     : none
+ *==========================================================================*/
+bool QCameraParameters::getBayerCAC()
+{
+    return m_bBayerCAC;
+}
+
 /*===========================================================================
  * FUNCTION   : getthumbnailSize
  *
@@ -14815,7 +14944,7 @@ bool QCameraParameters::setStreamConfigure(bool isCapture,
                 stream_config_info.rotation[stream_config_info.num_streams] =
                         getStreamRotation(CAM_STREAM_TYPE_PREVIEW);
                 stream_config_info.num_streams++;
-            } else if(!getQuadraCfa()) {
+            } else if(!getQuadraCfa() && !getBayerCAC()) {
                 stream_config_info.type[stream_config_info.num_streams] =
                         CAM_STREAM_TYPE_POSTVIEW;
                 getStreamDimension(CAM_STREAM_TYPE_POSTVIEW,
@@ -15025,7 +15154,8 @@ bool QCameraParameters::needThumbnailReprocess(cam_feature_mask_t *pFeatureMask)
             isStillMoreEnabled() ||
             (isHDREnabled() && !isHDRThumbnailProcessNeeded())
             || isUBWCEnabled()|| getQuadraCfa() ||
-            isDualCamera() || getRawZslCapture()) {
+            isDualCamera() || getRawZslCapture()
+            || getBayerCAC()) {
         *pFeatureMask &= ~CAM_QCOM_FEATURE_CHROMA_FLASH;
         *pFeatureMask &= ~CAM_QCOM_FEATURE_UBIFOCUS;
         *pFeatureMask &= ~CAM_QCOM_FEATURE_REFOCUS;
@@ -15082,7 +15212,7 @@ uint8_t QCameraParameters::getNumOfExtraBuffersForImageProc()
         numOfBufs += 4;
     }
 
-    if (getQuadraCfa()) {
+    if (getQuadraCfa() || getBayerCAC()) {
         numOfBufs += 1;
     }
 
@@ -15630,7 +15760,7 @@ bool QCameraParameters::isMultiPassReprocessing()
     char value[PROPERTY_VALUE_MAX];
     int multpass = 0;
 
-    if (getQuadraCfa()) {
+    if (getQuadraCfa() || getBayerCAC()) {
         multpass = TRUE;
         return TRUE;
     }
@@ -15664,14 +15794,14 @@ void QCameraParameters::setReprocCount()
         return;
     }
 
-    if ((getZoomLevel() != 0 && !getQuadraCfa())
+    if ((getZoomLevel() != 0 && !getQuadraCfa() && !getBayerCAC())
             && (getBurstCountForAdvancedCapture()
             == getNumOfSnapshots())) {
         LOGD("2 Pass postprocessing enabled");
         mTotalPPCount++;
     }
 
-    if (getQuadraCfa()) {
+    if (getQuadraCfa() || getBayerCAC()) {
         mTotalPPCount++;
     }
 }
@@ -16808,7 +16938,8 @@ bool QCameraParameters::needSnapshotPP()
             m_bLongshotEnabled || m_bRecordingHint ||
             m_bRedEyeReduction || isAdvCamFeaturesEnabled() || getQuadraCfa()
             || (isBayerMono() && (getHalPPType() == CAM_HAL_PP_TYPE_NONE))
-            || ((getHalPPType() == CAM_HAL_PP_TYPE_BOKEH) && !m_bBokehSnapEnabled)) {
+            || ((getHalPPType() == CAM_HAL_PP_TYPE_BOKEH) && !m_bBokehSnapEnabled)
+            || getBayerCAC()) {
         return false;
     } else {
         return true;

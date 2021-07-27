@@ -1490,7 +1490,8 @@ int32_t QCameraPostProcessor::processPPData(mm_camera_super_buf_t *frame)
 #endif
     int8_t mCurReprocCount = job->reprocCount;
     if ((m_parent->isLongshotEnabled()
-            && (!(m_parent->mParameters.getQuadraCfa())|| (mCurReprocCount == 2)))
+            && ((!(m_parent->mParameters.getQuadraCfa()) && !(m_parent->mParameters.getBayerCAC()))
+                 || (mCurReprocCount == 2)))
             && (!m_parent->isCaptureShutterEnabled())
             && (!m_parent->mCACDoneReceived)) {
         // play shutter sound for longshot
@@ -1633,7 +1634,7 @@ int32_t QCameraPostProcessor::processPPData(mm_camera_super_buf_t *frame)
             jpeg_job->metadata = (metadata_buffer_t *)meta_frame->buffer;
         }
 
-        if (m_parent->mParameters.getQuadraCfa()) {
+        if (m_parent->mParameters.getQuadraCfa() || m_parent->mParameters.getBayerCAC()) {
             // find offline metadata frame for quadra CFA
             mm_camera_buf_def_t *pOfflineMetaFrame = NULL;
             QCameraStream * pOfflineMetadataStream = NULL;

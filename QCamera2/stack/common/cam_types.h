@@ -2449,6 +2449,8 @@ typedef enum {
     CAM_INTF_PARM_JPEG_SCALE_DIMENSION,
     /*Param for updating Quadra CFA mode */
     CAM_INTF_PARM_QUADRA_CFA,
+    /*Param for updating Bayer CAC mode */
+    CAM_INTF_PARM_BAYER_CAC,
     /* Meta Raw Dim */
     CAM_INTF_META_RAW,
     /* Number of streams and size of streams in
@@ -2738,11 +2740,13 @@ typedef struct {
 #define CAM_QTI_FEATURE_RTB             (((cam_feature_mask_t)1UL)<<45)
 #define CAM_QCOM_FEATURE_LCAC           ((cam_feature_mask_t)1UL<<46)
 #define CAM_QTI_FEATURE_DEPTH_MAP       ((cam_feature_mask_t)1UL<<47)
+#define CAM_QCOM_FEATURE_BAYER_CAC      (((cam_feature_mask_t)1UL)<<48)
 #define CAM_QCOM_FEATURE_PP_SUPERSET    (CAM_QCOM_FEATURE_DENOISE2D|CAM_QCOM_FEATURE_CROP|\
                                          CAM_QCOM_FEATURE_ROTATION|CAM_QCOM_FEATURE_SHARPNESS|\
                                          CAM_QCOM_FEATURE_SCALE|CAM_QCOM_FEATURE_CAC|\
                                          CAM_QCOM_FEATURE_EZTUNE|CAM_QCOM_FEATURE_CPP_TNR|\
-                                         CAM_QCOM_FEATURE_LLVD|CAM_QCOM_FEATURE_QUADRA_CFA)
+                                         CAM_QCOM_FEATURE_LLVD|CAM_QCOM_FEATURE_QUADRA_CFA|\
+                                         CAM_QCOM_FEATURE_BAYER_CAC)
 
 #define CAM_QCOM_FEATURE_PP_PASS_1      CAM_QCOM_FEATURE_PP_SUPERSET
 #define CAM_QCOM_FEATURE_PP_PASS_2      (CAM_QCOM_FEATURE_SCALE | CAM_QCOM_FEATURE_CROP)

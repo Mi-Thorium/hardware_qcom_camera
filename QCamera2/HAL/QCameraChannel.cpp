@@ -1228,9 +1228,9 @@ int32_t QCameraReprocessChannel::addReprocStreamsFromSource(
             if (((pStream->isTypeOf(CAM_STREAM_TYPE_METADATA))
                     && !((param.getManualCaptureMode() >=
                     CAM_MANUAL_CAPTURE_TYPE_3) || (param.getQuadraCfa()
-                    || param.getRawZslCapture())))
+                    || param.getBayerCAC() || param.getRawZslCapture())))
                     || (pStream->isTypeOf(CAM_STREAM_TYPE_ANALYSIS))) {
-                // Skip metadata, if not manual capture or quadra cfa
+                // Skip metadata, if not manual capture or quadra cfa or bayer CAC
                 continue;
             }
 
@@ -1262,7 +1262,7 @@ int32_t QCameraReprocessChannel::addReprocStreamsFromSource(
             // For quadra CFA, assign metada_bypass for first pass feature mask.
             // For second pass in quadra CFA mode, assign metadata_processing.
             // For normal reprocess(no quadra CFA), assign metadata_processing.
-            if (!param.getQuadraCfa()) {
+            if (!param.getQuadraCfa() && !param.getBayerCAC()) {
                 if (pStream->isTypeOf(CAM_STREAM_TYPE_METADATA)) {
                     pp_featuremask.feature_mask = 0;
                     pp_featuremask.feature_mask |= CAM_QCOM_FEATURE_METADATA_PROCESSING;
@@ -1298,6 +1298,8 @@ int32_t QCameraReprocessChannel::addReprocStreamsFromSource(
             if (param.getofflineRAW() && (pStream->isTypeOf(CAM_STREAM_TYPE_RAW)
                     || pStream->isOrignalTypeOf(CAM_STREAM_TYPE_RAW))) {
                 if (pp_featuremask.feature_mask & CAM_QCOM_FEATURE_QUADRA_CFA) {
+                    param.getStreamFormat(CAM_STREAM_TYPE_OFFLINE_PROC, streamInfo->fmt);
+                } else if (pp_featuremask.feature_mask & CAM_QCOM_FEATURE_BAYER_CAC) {
                     param.getStreamFormat(CAM_STREAM_TYPE_OFFLINE_PROC, streamInfo->fmt);
                 } else {
                     streamInfo->fmt = CAM_FORMAT_YUV_420_NV21;
@@ -1641,7 +1643,7 @@ int32_t QCameraReprocessChannel::doReprocessOffline(mm_camera_buf_def_t *frame,
     if ((pStream->isOrignalTypeOf(CAM_STREAM_TYPE_METADATA)) && streamInfo &&
              (streamInfo->reprocess_config.pp_feature_config.feature_mask &
              CAM_QCOM_FEATURE_METADATA_BYPASS)) {
-        LOGH("set meta bypass for quadra cfa first pass");
+        LOGH("set meta bypass for quadra cfa/bayer cac first pass");
         // Backend will skip processing of metadata for first pass
         param.reprocess.is_offline_meta_bypass = 1;
     }
@@ -1708,11 +1710,11 @@ int32_t QCameraReprocessChannel::doReprocessOffline(mm_camera_super_buf_t *frame
 
             if ((pStream->isOrignalTypeOf(CAM_STREAM_TYPE_METADATA)
                      && ((mParameter.getManualCaptureMode()
-                     < CAM_MANUAL_CAPTURE_TYPE_3) && (!mParameter.getQuadraCfa())))
+                     < CAM_MANUAL_CAPTURE_TYPE_3) && (!mParameter.getQuadraCfa() && !mParameter.getBayerCAC())))
                      || (pStream->isTypeOf(CAM_STREAM_TYPE_ANALYSIS))) {
                 // Skip metadata for reprocess now because PP module cannot handle meta data
                 // May need furthur discussion if Imaginglib need meta data
-                // Do not skip metadata for manual capture or quadra CFA mode.
+                // Do not skip metadata for manual capture or quadra CFA mode or bayer CAC mode.
                 continue;
             }
 
@@ -1822,12 +1824,12 @@ int32_t QCameraReprocessChannel::doReprocess(mm_camera_super_buf_t *frame,
             }
             if ((pStream->isOrignalTypeOf(CAM_STREAM_TYPE_METADATA)
                      && ((mParameter.getManualCaptureMode()
-                     < CAM_MANUAL_CAPTURE_TYPE_3) && (!mParameter.getQuadraCfa())
+                     < CAM_MANUAL_CAPTURE_TYPE_3) && (!mParameter.getQuadraCfa() && !mParameter.getBayerCAC())
                      && (!mParameter.getRawZslCapture())))
                      || (pStream->isTypeOf(CAM_STREAM_TYPE_ANALYSIS))) {
                 // Skip metadata for reprocess now because PP module cannot handle meta data
                 // May need furthur discussion if Imaginglib need meta data
-                // Do not skip metadata for manual capture or quadra CFA mode.
+                // Do not skip metadata for manual capture or quadra CFA mode or bayer CAC mode.
                 continue;
             }
 

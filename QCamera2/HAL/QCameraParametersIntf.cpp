@@ -1118,6 +1118,13 @@ bool QCameraParametersIntf::getQuadraCfa()
     return mImpl->getQuadraCfa();
 }
 
+bool QCameraParametersIntf::getBayerCAC()
+{
+    Mutex::Autolock lock(mLock);
+    CHECK_PARAM_INTF(mImpl);
+    return mImpl->getBayerCAC();
+}
+
 int32_t QCameraParametersIntf::updatePpFeatureMask(cam_stream_type_t stream_type)
 {
     Mutex::Autolock lock(mLock);
@@ -1277,6 +1284,13 @@ int32_t QCameraParametersIntf::setQuadraCfaMode(uint32_t value, bool initCommit)
     Mutex::Autolock lock(mLock);
     CHECK_PARAM_INTF(mImpl);
     return mImpl->setQuadraCfaMode(value, initCommit);
+}
+
+int32_t QCameraParametersIntf::setBayerCACMode(uint32_t value, bool initCommit)
+{
+    Mutex::Autolock lock(mLock);
+    CHECK_PARAM_INTF(mImpl);
+    return mImpl->setBayerCACMode(value, initCommit);
 }
 
 int32_t QCameraParametersIntf::setRawCaptureMode(uint32_t value)
